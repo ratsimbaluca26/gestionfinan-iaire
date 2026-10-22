@@ -4,7 +4,6 @@ const API = axios.create({
   baseURL: process.env.REACT_APP_API || 'http://localhost:4000/api'
 });
 
-// Intercepteur pour injecter automatiquement le token JWT
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -13,7 +12,6 @@ API.interceptors.request.use((config) => {
   return config;
 });
 
-// Endpoints (plus besoin d'écrire /api/ à chaque fois)
 export const register = (data) => API.post('/auth/register', data);
 export const login = (data) => API.post('/auth/login', data);
 
@@ -24,3 +22,6 @@ export const payTransaction = (id, amount) => API.put(`/transactions/${id}/pay`,
 
 export const getClients = () => API.get('/clients');
 export const createClient = (data) => API.post('/clients', data);
+
+export const getSuppliers = () => API.get('/suppliers');
+export const createSupplier = (data) => API.post('/suppliers', data);

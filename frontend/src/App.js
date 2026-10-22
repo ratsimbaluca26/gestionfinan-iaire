@@ -3,6 +3,12 @@ import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
+import SuppliersPage from './pages/SuppliersPage';
+
+function ProtectedRoute({ children }) {
+  const token = localStorage.getItem('token');
+  return token ? children : <Navigate to="/login" replace />;
+}
 
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -32,6 +38,8 @@ export default function App() {
         <nav>
           {user ? (
             <>
+              <Link to="/">Tableau de bord</Link>
+              <Link to="/suppliers">Fournisseurs</Link>
               <span>Bonjour {user.name || user.email}</span>
               <button className="btn small" onClick={handleLogout}>Déconnexion</button>
             </>
@@ -48,7 +56,11 @@ export default function App() {
         <Routes>
           <Route
             path="/"
-            element={user ? <Dashboard /> : <Navigate to="/login" replace />}
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
           />
           <Route
             path="/login"
@@ -57,6 +69,14 @@ export default function App() {
           <Route
             path="/register"
             element={<Register onLogin={handleLogin} />}
+          />
+          <Route
+            path="/suppliers"
+            element={
+              <ProtectedRoute>
+                <SuppliersPage />
+              </ProtectedRoute>
+            }
           />
         </Routes>
       </main>
