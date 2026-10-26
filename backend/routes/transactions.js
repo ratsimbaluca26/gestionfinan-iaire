@@ -1,32 +1,44 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db'); // Votre connexion MySQL active
+const db = require('../db');
 
-// GET /api/transactions
 router.get('/', async (req, res) => {
   try {
     const query = `
-      SELECT t.*, c.name as clientName 
-      FROM transactions t 
-      LEFT JOIN clients c ON t.clientId = c.id 
+      SELECT t.*, c.name as clientName, s.name as supplierName
+      FROM transactions t
+      LEFT JOIN clients c ON t.clientId = c.id
+      LEFT JOIN suppliers s ON t.supplierId = s.id
       ORDER BY t.date DESC
     `;
     const [rows] = await db.query(query);
     res.json(rows);
   } catch (error) {
-    console.error("Erreur GET /transactions:", error);
+    console.error('Erreur GET /transactions:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// POST /api/transactions
 router.post('/', async (req, res) => {
   try {
-    const { type, category, amount, total, paid, description, date, clientId, sub } = req.body;
+    const {
+      type,
+      category,
+      amount,
+      total,
+      paid,
+      description,
+      date,
+      clientId,
+      supplierId,
+      sub
+    } = req.body;
 
     const query = `
-      INSERT INTO transactions (type, category, amount, total, paid, description, date, clientId, sub)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO transactions (
+        type, category, amount, total, paid, description, date, clientId, supplierId, sub
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const params = [
@@ -38,25 +50,27 @@ router.post('/', async (req, res) => {
       description || null,
       date,
       clientId || null,
+      supplierId || null,
       sub || null
     ];
 
     const [result] = await db.query(query, params);
 
-    res.status(201).json({ message: 'Transaction enregistrée avec succès', id: result.insertId });
+    res.status(201).json({
+      message: 'Transaction enregistrée avec succès',
+      id: result.insertId
+    });
   } catch (error) {
-    console.error("Erreur POST /transactions:", error);
+    console.error('Erreur POST /transactions:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// PUT /api/transactions/:id/pay - Enregistrer un paiement (partiel ou total)
 router.put('/:id/pay', async (req, res) => {
   try {
     const { id } = req.params;
-    const { amount } = req.body; // Le montant payé versé par le client
+    const { amount } = req.body;
 
-    // 1. Récupérer la transaction existante pour connaître les montants actuels
     const [rows] = await db.query('SELECT * FROM transactions WHERE id = ?', [id]);
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Transaction introuvable' });
@@ -66,35 +80,34 @@ router.put('/:id/pay', async (req, res) => {
     const newPaid = Number(tx.paid || 0) + Number(amount);
     const newAmount = Number(tx.amount || 0) + Number(amount);
 
-    // 2. Mettre à jour la base de données
     const query = `
-      UPDATE transactions 
-      SET paid = ?, amount = ? 
+      UPDATE transactions
+      SET paid = ?, amount = ?
       WHERE id = ?
     `;
+
     await db.query(query, [newPaid, newAmount, id]);
 
     res.json({ message: 'Paiement enregistré avec succès' });
   } catch (error) {
-    console.error("Erreur PUT /transactions/:id/pay:", error);
+    console.error('Erreur PUT /transactions/:id/pay:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// DELETE /api/transactions/:id - Supprimer une transaction
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
     const [result] = await db.query('DELETE FROM transactions WHERE id = ?', [id]);
-    
+
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Transaction introuvable' });
     }
 
     res.json({ message: 'Transaction supprimée avec succès' });
   } catch (error) {
-    console.error("Erreur DELETE /transactions/:id:", error);
+    console.error('Erreur DELETE /transactions/:id:', error);
     res.status(500).json({ error: error.message });
   }
 });
