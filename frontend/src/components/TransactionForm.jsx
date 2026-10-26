@@ -117,6 +117,10 @@ export default function TransactionForm({
           const supplierId = created?.id ?? created?.data?.id;
           if (!supplierId) return alert("ID fournisseur introuvable");
           payload.supplierId = supplierId;
+
+          // (optionnel) auto-sélection après création
+          setSelectedSupplier(String(supplierId));
+          setNewSupplier("");
         } else if (!selectedSupplier) {
           return alert("Choisir un fournisseur");
         } else {
@@ -176,10 +180,7 @@ export default function TransactionForm({
               <>
                 <label>
                   Client
-                  <select
-                    value={selectedClient}
-                    onChange={(e) => setSelectedClient(e.target.value)}
-                  >
+                  <select value={selectedClient} onChange={(e) => setSelectedClient(e.target.value)}>
                     <option value="">Choisir un client</option>
                     {clients.map((c) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
@@ -191,10 +192,7 @@ export default function TransactionForm({
                 {selectedClient === "new" && (
                   <label>
                     Nom du client
-                    <input
-                      value={newClient}
-                      onChange={(e) => setNewClient(e.target.value)}
-                    />
+                    <input value={newClient} onChange={(e) => setNewClient(e.target.value)} />
                   </label>
                 )}
               </>
@@ -212,19 +210,14 @@ export default function TransactionForm({
                     {suppliers.map((s) => (
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
-                    {canCreateSupplier && (
-                      <option value="new">+ Nouveau fournisseur</option>
-                    )}
+                    {canCreateSupplier && <option value="new">+ Nouveau fournisseur</option>}
                   </select>
                 </label>
 
                 {canCreateSupplier && selectedSupplier === "new" && (
                   <label>
                     Nom du fournisseur
-                    <input
-                      value={newSupplier}
-                      onChange={(e) => setNewSupplier(e.target.value)}
-                    />
+                    <input value={newSupplier} onChange={(e) => setNewSupplier(e.target.value)} />
                   </label>
                 )}
               </>
@@ -244,11 +237,7 @@ export default function TransactionForm({
           <>
             <label>
               Montant
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-              />
+              <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
             </label>
 
             {category === "Dépense personnelle" && (
@@ -266,19 +255,12 @@ export default function TransactionForm({
 
         <label>
           Description
-          <input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
+          <input value={description} onChange={(e) => setDescription(e.target.value)} />
         </label>
 
         <label>
           Date
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
 
         <button className="btn" type="submit">Enregistrer</button>
