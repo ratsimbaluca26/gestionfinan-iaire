@@ -12,20 +12,20 @@ Application de gestion de budget avec :
 ## Structure
 - backend : API REST
 - frontend : interface React
-- backend/init.sql : script d'initialisation PostgreSQL
+- backend/schema.sql : schéma PostgreSQL
 
-## 1) Base PostgreSQL avec Docker
+## 1) Démarrage rapide avec Docker
 
 ```bash
 docker compose up --build
 ```
 
-Les services seront disponibles :
+Services disponibles :
 - Backend : http://localhost:4000
 - Frontend : http://localhost:3000
 - PostgreSQL : localhost:5432
 
-## 2) Démarrage local sans Docker
+## 2) Backend local
 
 ```bash
 cd backend
@@ -34,6 +34,8 @@ npm install
 npm run dev
 ```
 
+## 3) Frontend local
+
 ```bash
 cd frontend
 cp .env.example .env
@@ -41,11 +43,14 @@ npm install
 npm start
 ```
 
-## 3) Base PostgreSQL locale
+## 4) Base PostgreSQL locale
 
-Créer la base PostgreSQL locale ou utiliser Docker. Le script `backend/init.sql` initialise automatiquement les tables.
+```bash
+createdb mon_budget
+psql -d mon_budget -f backend/schema.sql
+```
 
-## 4) Générer le ZIP
+## 5) Générer le ZIP
 
 Depuis le dossier parent :
 

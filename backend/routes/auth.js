@@ -10,7 +10,6 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const sign = (user) =>
   jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-// En développement, on renvoie le code d'erreur pour diagnostiquer vite
 function serverError(res, err, where) {
   console.error(`[${where}]`, err);
   const body = { error: 'Server error' };
@@ -27,19 +26,19 @@ router.post('/register', async (req, res) => {
     if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'Email invalide' });
     if (password.length < 6) return res.status(400).json({ error: 'Mot de passe : 6 caractères minimum' });
 
-    const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
-    if (existing.length) return res.status(409).json({ error: 'Email déjà utilisé' });
+    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existing.rows.length) return res.status(409).json({ error: 'Email déjà utilisé' });
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const [result] = await pool.query(
-      'INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)',
+    const result = await pool.query(
+      'INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id',
       [name, email, passwordHash]
     );
 
-    const user = { id: result.insertId, name, email };
+    const user = { id: result.rows[0].id, name, email };
     return res.status(201).json({ token: sign(user), user });
   } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Email déjà utilisé' });
+    if (err.code === '23505') return res.status(409).json({ error: 'Email déjà utilisé' });
     return serverError(res, err, 'register');
   }
 });
@@ -50,10 +49,11 @@ router.post('/login', async (req, res) => {
     const password = String(req.body?.password || '');
     if (!email || !password) return res.status(400).json({ error: 'Email et mot de passe requis' });
 
-    const [rows] = await pool.query(
-      'SELECT id, name, email, password_hash FROM users WHERE email = ?', [email]
+    const result = await pool.query(
+      'SELECT id, name, email, password_hash FROM users WHERE email = $1',
+      [email]
     );
-    const row = rows[0];
+    const row = result.rows[0];
     const ok = row && (await bcrypt.compare(password, row.password_hash));
     if (!ok) return res.status(401).json({ error: 'Identifiants invalides' });
 
@@ -66,9 +66,10 @@ router.post('/login', async (req, res) => {
 
 router.get('/me', requireAuth, async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT id, name, email FROM users WHERE id = ?', [req.user.id]);
-    if (!rows[0]) return res.status(401).json({ error: 'Utilisateur introuvable' });
-    res.json({ user: rows[0] });
+    const result = await pool.query('SELECT id, name, email FROM users WHERE id = $1', [req.user.id]);
+    const row = result.rows[0];
+    if (!row) return res.status(401).json({ error: 'Utilisateur introuvable' });
+    res.json({ user: row });
   } catch (err) {
     return serverError(res, err, 'me');
   }

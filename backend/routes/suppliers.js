@@ -15,10 +15,10 @@ router.use(requireAuth);
 
 router.get('/', async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      'SELECT id, name, created_at AS createdAt FROM suppliers ORDER BY name ASC'
+    const result = await pool.query(
+      'SELECT id, name, created_at AS "createdAt" FROM suppliers ORDER BY name ASC'
     );
-    return res.json(rows);
+    return res.json(result.rows);
   } catch (err) {
     return serverError(res, err, 'GET /suppliers');
   }
@@ -29,14 +29,14 @@ router.post('/', async (req, res) => {
     const name = String(req.body?.name || '').trim();
     if (!name) return res.status(400).json({ error: 'name requis' });
 
-    const [result] = await pool.query(
-      'INSERT INTO suppliers (name) VALUES (?)',
+    const result = await pool.query(
+      'INSERT INTO suppliers (name) VALUES ($1) RETURNING id',
       [name]
     );
 
-    return res.status(201).json({ id: result.insertId, name });
+    return res.status(201).json({ id: result.rows[0].id, name });
   } catch (err) {
-    if (err?.code === 'ER_DUP_ENTRY') {
+    if (err?.code === '23505') {
       return res.status(409).json({ error: 'Ce fournisseur existe déjà' });
     }
     return serverError(res, err, 'POST /suppliers');
