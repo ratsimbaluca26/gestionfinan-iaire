@@ -31,14 +31,15 @@ services:
       - "4000:4000"
 
   frontend:
-    build:
-      context: ./frontend
-      args:
-        REACT_APP_API: http://${EC2_IP}:4000/api
+    build: ./frontend
     container_name: mon_budget_frontend
     restart: always
     depends_on:
       - backend
+    environment:
+      REACT_APP_API: http://${EC2_IP}:4000
+      HOST: 0.0.0.0
+      WDS_SOCKET_PORT: 3000
     ports:
       - "3000:3000"
 
