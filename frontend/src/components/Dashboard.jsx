@@ -1,23 +1,35 @@
 import React, { useEffect, useState } from 'react';
-import { getTransactions, createTransaction, deleteTransaction, payTransaction, getClients, createClient } from '../api';
+import {
+  getTransactions,
+  createTransaction,
+  deleteTransaction,
+  payTransaction,
+  getClients,
+  createClient,
+  getSuppliers,
+  createSupplier
+} from '../api';
 import TransactionForm from './TransactionForm';
 
 export default function Dashboard() {
   const [transactions, setTransactions] = useState([]);
   const [clients, setClients] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [error, setError] = useState('');
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
 
   const load = async () => {
     try {
       setError('');
-      const [txRes, clientRes] = await Promise.all([
+      const [txRes, clientRes, supplierRes] = await Promise.all([
         getTransactions(month),
-        getClients()
+        getClients(),
+        getSuppliers()
       ]);
 
       setTransactions(txRes.data);
       setClients(clientRes.data);
+      setSuppliers(supplierRes.data);
     } catch (err) {
       setError('Erreur de chargement des données');
     }
@@ -35,20 +47,24 @@ export default function Dashboard() {
   const onCreateClient = async (data) => {
     const res = await createClient(data);
     await load();
-    return res.data; // Permet à TransactionForm d'avoir l'ID du nouveau client
+    return res.data;
+  };
+
+  const onCreateSupplier = async (data) => {
+    const res = await createSupplier(data);
+    await load();
+    return res.data;
   };
 
   const onDelete = async (id) => {
     if (window.confirm('Voulez-vous vraiment supprimer cette transaction ?')) {
-      console.log(id)
       await deleteTransaction(id);
       await load();
     }
   };
 
   const onPay = async (id, amount) => {
-    console.log(id)
-   await payTransaction(id, amount);
+    await payTransaction(id, amount);
     await load();
   };
 
@@ -66,8 +82,7 @@ export default function Dashboard() {
         <small>
           {new Date(`${month}-01`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
         </small>
-        
-        {/* Solde net du mois */}
+
         <h2 style={{ marginTop: 8, fontSize: '2.3rem' }}>
           {(incoming - outgoing).toFixed(2)} €
         </h2>
@@ -79,7 +94,13 @@ export default function Dashboard() {
       </div>
 
       <div className="grid">
-        <TransactionForm clients={clients} onCreate={onCreate} onCreateClient={onCreateClient} />
+        <TransactionForm
+          clients={clients}
+          suppliers={suppliers}
+          onCreate={onCreate}
+          onCreateClient={onCreateClient}
+          onCreateSupplier={onCreateSupplier}
+        />
 
         <section className="card">
           <h3>Historique</h3>
@@ -109,6 +130,7 @@ export default function Dashboard() {
                       <div>
                         <strong>{tx.category}</strong>
                         {tx.clientName && <small style={{ marginLeft: 8, color: '#666' }}>({tx.clientName})</small>}
+                        {tx.supplierName && <small style={{ marginLeft: 8, color: '#666' }}>({tx.supplierName})</small>}
                       </div>
                       <div className="d">{tx.description || '—'} · {tx.date}</div>
                       {tx.total > 0 && (

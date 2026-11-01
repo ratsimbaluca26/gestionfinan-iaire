@@ -84,7 +84,6 @@ export default function TransactionForm({
       payload.paid = paidNum;
       payload.amount = paidNum;
 
-      // ---- CLIENT (Entrées vente/couture)
       if (isClientFlow) {
         if (selectedClient === "new") {
           if (!newClient.trim()) return alert("Nom du client requis");
@@ -106,7 +105,6 @@ export default function TransactionForm({
         }
       }
 
-      // ---- FOURNISSEUR (Sorties fournitures/habillement)
       if (isSupplierFlow) {
         if (selectedSupplier === "new") {
           if (!newSupplier.trim()) return alert("Nom du fournisseur requis");

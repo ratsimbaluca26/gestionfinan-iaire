@@ -1,6 +1,5 @@
 const express = require('express');
 const pool = require('../db');
-const requireAuth = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -10,8 +9,6 @@ function serverError(res, err, where) {
   if (process.env.NODE_ENV !== 'production') body.detail = err.code || err.message;
   return res.status(500).json(body);
 }
-
-router.use(requireAuth);
 
 router.get('/', async (req, res) => {
   try {
