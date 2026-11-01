@@ -3,7 +3,7 @@
 Application de gestion de budget avec :
 - Express.js
 - React.js
-- MySQL
+- PostgreSQL
 - Authentification JWT
 - Gestion des entrées / sorties
 - Clients / dettes / paiements
@@ -12,25 +12,48 @@ Application de gestion de budget avec :
 ## Structure
 - backend : API REST
 - frontend : interface React
-- backend/sql/schema.sql : base de données MySQL
+- backend/schema.sql : schéma PostgreSQL
 
-## 1) Base MySQL
-Créer la base :
-mysql -u root -p < backend/sql/schema.sql
+## 1) Démarrage rapide avec Docker
 
-## 2) Backend
+```bash
+docker compose up --build
+```
+
+Services disponibles :
+- Backend : http://localhost:4000
+- Frontend : http://localhost:3000
+- PostgreSQL : localhost:5432
+
+## 2) Backend local
+
+```bash
 cd backend
 cp .env.example .env
-# remplir les valeurs
 npm install
 npm run dev
+```
 
-## 3) Frontend
+## 3) Frontend local
+
+```bash
 cd frontend
 cp .env.example .env
 npm install
 npm start
+```
 
-## 4) Générer le ZIP
+## 4) Base PostgreSQL locale
+
+```bash
+createdb mon_budget
+psql -d mon_budget -f backend/schema.sql
+```
+
+## 5) Générer le ZIP
+
 Depuis le dossier parent :
+
+```bash
 zip -r mon-budget-app.zip mon-budget-app
+```

@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: mon_budget_db
+    restart: always
+    environment:
+      POSTGRES_DB: mon_budget
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  backend:
+    build: ./backend
+    container_name: mon_budget_backend
+    restart: always
+    depends_on:
+      - db
+    environment:
+      PORT: 4000
+      NODE_ENV: production
+      CLIENT_ORIGIN: http://${EC2_IP}:3000
+      JWT_SECRET: ${JWT_SECRET}
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: mon_budget
+    ports:
+      - "4000:4000"
+
+  frontend:
+    build: ./frontend
+    container_name: mon_budget_frontend
+    restart: always
+    depends_on:
+      - backend
+    environment:
+      REACT_APP_API: http://${EC2_IP}:4000
+      HOST: 0.0.0.0
+      WDS_SOCKET_PORT: 3000
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data: {}

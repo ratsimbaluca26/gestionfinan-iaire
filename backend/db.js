@@ -1,19 +1,18 @@
 require('dotenv').config();
-const mysql = require('mysql2/promise'); // IMPORTANT : version "promise"
+const { Pool } = require('pg');
 
-const pool = mysql.createPool({
+const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
-  port: Number(process.env.DB_PORT || 3306),
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
+  port: Number(process.env.DB_PORT || 5432),
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || 'postgres',
+  database: process.env.DB_NAME || 'mon_budget',
+  max: 10,
+  idleTimeoutMillis: 30000,
 });
 
-// Test au démarrage : affiche clairement le problème MySQL s'il y en a un
 pool.query('SELECT 1')
-  .then(() => console.log('MySQL connecté :', process.env.DB_NAME))
-  .catch((err) => console.error('MySQL ERREUR :', err.code, '-', err.message));
+  .then(() => console.log('PostgreSQL connecté :', process.env.DB_NAME || 'mon_budget'))
+  .catch((err) => console.error('PostgreSQL ERREUR :', err.code, '-', err.message));
 
 module.exports = pool;
