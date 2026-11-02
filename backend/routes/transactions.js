@@ -5,17 +5,10 @@ const db = require('../db');
 router.get('/', async (req, res) => {
   try {
     const query = `
-<<<<<<< HEAD
-      SELECT t.*, c.name as clientName, s.name as supplierName
-      FROM transactions t
-      LEFT JOIN clients c ON t.clientId = c.id
-      LEFT JOIN suppliers s ON t.supplierId = s.id
-=======
       SELECT t.*, c.name AS "clientName", s.name AS "supplierName"
       FROM transactions t
       LEFT JOIN clients c ON t."clientId" = c.id
       LEFT JOIN suppliers s ON t."supplierId" = s.id
->>>>>>> 6354a71a57b5aa41bac1b9b3aff46c30c70228be
       ORDER BY t.date DESC
     `;
     const result = await db.query(query);
@@ -43,16 +36,10 @@ router.post('/', async (req, res) => {
 
     const query = `
       INSERT INTO transactions (
-<<<<<<< HEAD
-        type, category, amount, total, paid, description, date, clientId, supplierId, sub
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-=======
         type, category, amount, total, paid, description, date, "clientId", "supplierId", sub
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING id
->>>>>>> 6354a71a57b5aa41bac1b9b3aff46c30c70228be
     `;
 
     const params = [
@@ -72,11 +59,7 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({
       message: 'Transaction enregistrée avec succès',
-<<<<<<< HEAD
-      id: result.insertId
-=======
       id: result.rows[0].id
->>>>>>> 6354a71a57b5aa41bac1b9b3aff46c30c70228be
     });
   } catch (error) {
     console.error('Erreur POST /transactions:', error);
@@ -89,35 +72,20 @@ router.put('/:id/pay', async (req, res) => {
     const { id } = req.params;
     const { amount } = req.body;
 
-<<<<<<< HEAD
-    const [rows] = await db.query('SELECT * FROM transactions WHERE id = ?', [id]);
-    if (rows.length === 0) {
-=======
     const result = await db.query('SELECT * FROM transactions WHERE id = $1', [id]);
     const tx = result.rows[0];
 
     if (!tx) {
->>>>>>> 6354a71a57b5aa41bac1b9b3aff46c30c70228be
       return res.status(404).json({ error: 'Transaction introuvable' });
     }
 
     const newPaid = Number(tx.paid || 0) + Number(amount);
     const newAmount = Number(tx.amount || 0) + Number(amount);
 
-<<<<<<< HEAD
-    const query = `
-      UPDATE transactions
-      SET paid = ?, amount = ?
-      WHERE id = ?
-    `;
-
-    await db.query(query, [newPaid, newAmount, id]);
-=======
     await db.query(
       'UPDATE transactions SET paid = $1, amount = $2 WHERE id = $3',
       [newPaid, newAmount, id]
     );
->>>>>>> 6354a71a57b5aa41bac1b9b3aff46c30c70228be
 
     res.json({ message: 'Paiement enregistré avec succès' });
   } catch (error) {
@@ -131,13 +99,7 @@ router.delete('/:id', async (req, res) => {
     const { id } = req.params;
     const result = await db.query('DELETE FROM transactions WHERE id = $1', [id]);
 
-<<<<<<< HEAD
-    const [result] = await db.query('DELETE FROM transactions WHERE id = ?', [id]);
-
-    if (result.affectedRows === 0) {
-=======
     if (result.rowCount === 0) {
->>>>>>> 6354a71a57b5aa41bac1b9b3aff46c30c70228be
       return res.status(404).json({ error: 'Transaction introuvable' });
     }
 
