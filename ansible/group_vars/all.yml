@@ -1,0 +1,14 @@
+# Aucun secret ici : les secrets viennent des variables d'environnement (Jenkins).
+domain: finiova.app
+app_dir: /home/ubuntu/gestionfinan-iaire
+repo: https://github.com/ratsimbaluca26/gestionfinan-iaire.git
+branch: main
+
+aws_region: us-east-2
+# A REMPLACER : nom exact du Security Group (EC2 > Security Groups > colonne Nom)
+sg_name: "launch-wizard-1"
+sg_description: "gestionfinan-iaire"
+
+letsencrypt_email: "{{ lookup('env', 'LE_EMAIL') }}"
+db_password: "{{ lookup('env', 'DB_PASSWORD') }}"
+jwt_secret: "{{ lookup('env', 'JWT_SECRET') }}"

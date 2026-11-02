@@ -20,7 +20,7 @@ services:
     environment:
       PORT: 4000
       NODE_ENV: production
-      CLIENT_ORIGIN: http://${EC2_IP}:3000
+      CLIENT_ORIGIN: https://${DOMAIN}
       JWT_SECRET: ${JWT_SECRET}
       DB_HOST: db
       DB_PORT: 5432
@@ -28,7 +28,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: mon_budget
     ports:
-      - "4000:4000"
+      - "127.0.0.1:4000:4000"
 
   frontend:
     build: ./frontend
@@ -37,11 +37,12 @@ services:
     depends_on:
       - backend
     environment:
-      REACT_APP_API: http://${EC2_IP}:4000
+      REACT_APP_API: https://${DOMAIN}/api
       HOST: 0.0.0.0
-      WDS_SOCKET_PORT: 3000
+      WDS_SOCKET_PORT: 443
+      DANGEROUSLY_DISABLE_HOST_CHECK: "true"
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
 
 volumes:
   postgres_data: {}

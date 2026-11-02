@@ -1,0 +1,129 @@
+# ---------- 1. AWS : pare-feu (execute depuis Jenkins) ----------
+- name: Security Group AWS
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Connaitre l'IP publique de Jenkins
+      ansible.builtin.uri:
+        url: https://api.ipify.org
+        return_content: true
+      register: my_ip
+
+    - name: Definir les regles entrantes
+      amazon.aws.ec2_security_group:
+        name: "{{ sg_name }}"
+        description: "{{ sg_description }}"
+        region: "{{ aws_region }}"
+        purge_rules: true   # supprime tout ce qui n'est pas liste (3000, 4000, 5432, 1433...)
+        rules:
+          - { proto: tcp, ports: [22],  cidr_ip: "{{ my_ip.content }}/32", rule_desc: "SSH Jenkins" }
+          - { proto: tcp, ports: [80],  cidr_ip: 0.0.0.0/0, rule_desc: "HTTP" }
+          - { proto: tcp, ports: [443], cidr_ip: 0.0.0.0/0, rule_desc: "HTTPS" }
+
+# ---------- 2. Serveur EC2 ----------
+- name: Configuration du serveur
+  hosts: ec2
+  become: true
+  tasks:
+    - name: Paquets systeme
+      ansible.builtin.apt:
+        name: [git, curl, docker.io, docker-compose-v2, nginx, certbot, python3-certbot-nginx]
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Docker demarre au boot
+      ansible.builtin.service: { name: docker, state: started, enabled: true }
+
+    - name: ubuntu dans le groupe docker
+      ansible.builtin.user: { name: ubuntu, groups: docker, append: true }
+
+    - name: Recuperer le code
+      become: false
+      ansible.builtin.git:
+        repo: "{{ repo }}"
+        dest: "{{ app_dir }}"
+        version: "{{ branch }}"
+        force: true
+
+    - name: Ecrire le .env
+      become: false
+      ansible.builtin.template:
+        src: env.j2
+        dest: "{{ app_dir }}/.env"
+        mode: "0600"
+      no_log: true
+
+    - name: Lancer les conteneurs
+      ansible.builtin.command: docker compose up -d --build --remove-orphans
+      args:
+        chdir: "{{ app_dir }}"
+      register: compose
+      changed_when: "'Started' in compose.stderr or 'Recreated' in compose.stderr or 'Created' in compose.stderr"
+
+    - name: Attendre PostgreSQL
+      ansible.builtin.command: docker compose exec -T db pg_isready -U postgres
+      args:
+        chdir: "{{ app_dir }}"
+      register: pg
+      retries: 15
+      delay: 4
+      until: pg.rc == 0
+      changed_when: false
+
+    - name: Aligner le mot de passe de la base sur le .env
+      ansible.builtin.command: docker compose exec -T db psql -U postgres -v ON_ERROR_STOP=1
+      args:
+        chdir: "{{ app_dir }}"
+        stdin: "ALTER USER postgres PASSWORD '{{ db_password }}';"
+      changed_when: false
+      no_log: true
+
+    - name: Redemarrer le backend apres alignement
+      ansible.builtin.command: docker compose restart backend
+      args:
+        chdir: "{{ app_dir }}"
+      changed_when: false
+
+    - name: Configurer nginx
+      ansible.builtin.template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/sites-available/finiova
+        mode: "0644"
+      notify: Recharger nginx
+
+    - name: Activer le site
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/finiova
+        dest: /etc/nginx/sites-enabled/finiova
+        state: link
+      notify: Recharger nginx
+
+    - name: Retirer le site par defaut
+      ansible.builtin.file: { path: /etc/nginx/sites-enabled/default, state: absent }
+      notify: Recharger nginx
+
+    - name: Appliquer nginx maintenant
+      ansible.builtin.meta: flush_handlers
+
+    - name: Certificat Let's Encrypt
+      ansible.builtin.command: >
+        certbot --nginx -d {{ domain }} -d www.{{ domain }}
+        --non-interactive --agree-tos --redirect -m {{ letsencrypt_email }}
+      args:
+        creates: "/etc/letsencrypt/live/{{ domain }}/fullchain.pem"
+
+    - name: Verifier le site en HTTPS
+      become: false
+      ansible.builtin.uri:
+        url: "https://{{ domain }}/"
+        status_code: 200
+      register: health
+      retries: 12
+      delay: 10
+      until: health.status == 200
+
+  handlers:
+    - name: Recharger nginx
+      ansible.builtin.service: { name: nginx, state: reloaded }
