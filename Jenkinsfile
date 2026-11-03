@@ -28,7 +28,7 @@ pipeline {
                     string(credentialsId: 'db-password', variable: 'DB_PASSWORD'),
                     string(credentialsId: 'jwt-secret', variable: 'JWT_SECRET'),
                     string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
-                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                    string(credentialsId: 'aws-access-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
                     sh '''
                         echo "localhost ansible_connection=local ansible_python_interpreter=/usr/bin/python3" > ansible/inventory.ini
