@@ -31,16 +31,9 @@ pipeline {
                     string(credentialsId: 'aws-access-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
                     sh '''
-                        echo "localhost ansible_connection=local ansible_python_interpreter=/usr/bin/python3" > ansible/inventory.ini
-                        echo "" >> ansible/inventory.ini
-                        echo "[ec2]" >> ansible/inventory.ini
-                        echo "${EC2_HOST}" >> ansible/inventory.ini
-
-                        ansible-galaxy collection install -r ansible/requirements.yml
-                        ansible-playbook -i ansible/inventory.ini ansible/site.yml \
-                          --private-key "$SSH_KEY" -u ubuntu \
-                          --extra-vars "db_password=${DB_PASSWORD} jwt_secret=${JWT_SECRET} letsencrypt_email=${LE_EMAIL}"
-                    '''
+    aws sts get-caller-identity
+    ansible-playbook -i ansible/inventory.ini ansible/site.yml ...
+'''
                 }
             }
         }
