@@ -8,6 +8,7 @@ pipeline {
 
     environment {
         PATH           = "/home/tahianaluca/.local/bin:${env.PATH}"
+        PYTHONPATH     = "/home/tahianaluca/.local/lib/python3.12/site-packages"
         EC2_HOST       = credentials('ec2-host')
         LE_EMAIL       = 'ratsimbaluca986@gmail.com'
         ANSIBLE_CONFIG = "${WORKSPACE}/ansible/ansible.cfg"
