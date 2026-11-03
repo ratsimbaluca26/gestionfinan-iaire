@@ -7,6 +7,7 @@ pipeline {
     }
 
     environment {
+        PATH           = "/home/tahianaluca/.local/bin:${env.PATH}"
         EC2_HOST       = credentials('ec2-host')
         LE_EMAIL       = 'ratsimbaluca986@gmail.com'
         ANSIBLE_CONFIG = "${WORKSPACE}/ansible/ansible.cfg"
@@ -34,7 +35,8 @@ pipeline {
 
                         ansible-galaxy collection install -r ansible/requirements.yml
                         ansible-playbook -i ansible/inventory.ini ansible/site.yml \
-                          --private-key "$SSH_KEY" -u ubuntu
+                          --private-key "$SSH_KEY" -u ubuntu \
+                          --extra-vars "db_password=${DB_PASSWORD} jwt_secret=${JWT_SECRET} letsencrypt_email=${LE_EMAIL}"
                     '''
                 }
             }
