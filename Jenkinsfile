@@ -31,8 +31,7 @@ pipeline {
                     string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
                     sh '''
-                        echo "[localhost]" > ansible/inventory.ini
-                        echo "localhost ansible_connection=local ansible_python_interpreter=/usr/bin/python3" >> ansible/inventory.ini
+                        echo "localhost ansible_connection=local" > ansible/inventory.ini
                         echo "" >> ansible/inventory.ini
                         echo "[ec2]" >> ansible/inventory.ini
                         echo "${EC2_HOST}" >> ansible/inventory.ini
