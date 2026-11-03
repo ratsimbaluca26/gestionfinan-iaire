@@ -50,3 +50,4 @@ pipeline {
         failure { echo 'Echec du deploiement : voir Console Output.' }
     }
 }
+}
