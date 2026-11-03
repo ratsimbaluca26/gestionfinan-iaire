@@ -37,7 +37,7 @@ pipeline {
                         ansible-galaxy collection install -r ansible/requirements.yml
                         ansible-playbook -i ansible/inventory.ini ansible/site.yml \
                           --private-key "$SSH_KEY" -u ubuntu \
-                          --extra-vars "db_password=${DB_PASSWORD} jwt_secret=${JWT_SECRET} letsencrypt_email=${LE_EMAIL}"
+                          --extra-vars "db_password=${DB_PASSWORD} jwt_secret=${JWT_SECRET} letsencrypt_email=${LE_EMAIL} ansible_python_interpreter=/usr/bin/python3"
                     '''
                 }
             }
