@@ -31,23 +31,11 @@ pipeline {
                     string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
                     sh '''
-                        # 1. Créer un environnement virtuel local dans le workspace s'il n'existe pas
-                        if [ ! -d "venv" ]; then
-                            python3.12 -m venv venv
-                        fi
-
-                        # 2. Activer l'environnement virtuel et installer les dépendances nécessaires
-                        . venv/bin/activate
-                        pip install --upgrade pip
-                        pip install ansible boto3 botocore
-
-                        # 3. Préparer l'inventaire dynamique
-                        echo "localhost ansible_connection=local ansible_python_interpreter=$(pwd)/venv/bin/python" > ansible/inventory.ini
+                        echo "localhost ansible_connection=local" > ansible/inventory.ini
                         echo "" >> ansible/inventory.ini
                         echo "[ec2]" >> ansible/inventory.ini
                         echo "${EC2_HOST}" >> ansible/inventory.ini
 
-                        # 4. Exécuter Ansible depuis l'environnement virtuel
                         ansible-galaxy collection install -r ansible/requirements.yml
                         ansible-playbook -i ansible/inventory.ini ansible/site.yml \
                           --private-key "$SSH_KEY" -u ubuntu \
@@ -56,7 +44,6 @@ pipeline {
                 }
             }
         }
-    }
 
     post {
         success { echo 'Deploiement reussi : https://finiova.app' }
