@@ -30,8 +30,6 @@ pipeline {
                     string(credentialsId: 'db-password', variable: 'DB_PASSWORD'),
                     string(credentialsId: 'jwt-secret', variable: 'JWT_SECRET'),
                     string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
-                    // Assurez-vous que cet ID ('aws-secret-access-key') correspond 
-                    // exactement au nom de votre secret dans Manage Jenkins > Credentials
                     string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
                     sh '''
@@ -42,10 +40,10 @@ pipeline {
 
                         ansible-galaxy collection install -r ansible/requirements.yml
                         
-                        # Vérification de l'identité AWS avant de lancer Ansible
+                        # Vérification de l'identité AWS active dans le pipeline
                         aws sts get-caller-identity
 
-                        # Exécution depuis la racine du workspace
+                        # Exécution du playbook Ansible depuis la racine du workspace
                         ansible-playbook -i ansible/inventory.ini ansible/site.yml \
                           --private-key "$SSH_KEY" -u ubuntu \
                           --extra-vars "db_password=${DB_PASSWORD} jwt_secret=${JWT_SECRET} letsencrypt_email=${LE_EMAIL}"
