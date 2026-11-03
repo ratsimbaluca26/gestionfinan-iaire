@@ -50,10 +50,14 @@
         cache_valid_time: 3600
 
     - name: Docker demarre au boot
-      ansible.builtin.service:
-        name: docker
-        state: started
-        enabled: true
+      ansible.builtin.shell: |
+        systemctl daemon-reload
+        systemctl unmask docker.service
+        systemctl unmask docker.socket
+        systemctl restart docker.service
+        systemctl enable docker.service
+      register: docker_start
+      changed_when: docker_start.rc == 0
 
     - name: ubuntu dans le groupe docker
       ansible.builtin.user:
