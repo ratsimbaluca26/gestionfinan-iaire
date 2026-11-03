@@ -56,9 +56,11 @@
         systemctl unmask docker.socket
         systemctl restart docker.service
         systemctl enable docker.service
-        # Attente active de la disponibilité effective du socket
-        for i in {1..15}; do
+        
+        # Boucle d'attente active du socket docker
+        for i in {1..20}; do
           if [ -S /var/run/docker.sock ]; then
+            chmod 666 /var/run/docker.sock
             exit 0
           fi
           sleep 1
