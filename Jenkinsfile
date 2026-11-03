@@ -44,10 +44,11 @@ pipeline {
                 }
             }
         }
+    }
 
     post {
         success { echo 'Deploiement reussi : https://finiova.app' }
         failure { echo 'Echec du deploiement : voir Console Output.' }
     }
-}
+
 }
