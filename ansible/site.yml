@@ -58,7 +58,7 @@
         systemctl enable docker.service
         
         # Boucle d'attente active du socket docker
-        for i in {1..20}; do
+        for i in $(seq 1 20); do
           if [ -S /var/run/docker.sock ]; then
             chmod 666 /var/run/docker.sock
             exit 0
