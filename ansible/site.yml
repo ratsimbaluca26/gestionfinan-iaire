@@ -28,6 +28,17 @@
   hosts: ec2
   become: true
   tasks:
+  - name: Nettoyer les paquets containerd et docker conflictuels
+  ansible.builtin.apt:
+    - name:
+        - containerd
+        - containerd.io
+        - docker
+        - docker-engine
+        - docker.io
+      state: absent
+      purge: true
+      
     - name: Paquets systeme
       ansible.builtin.apt:
         name: [git, curl, docker.io, docker-compose-v2, nginx, certbot, python3-certbot-nginx]
