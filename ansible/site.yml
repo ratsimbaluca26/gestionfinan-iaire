@@ -52,10 +52,15 @@
     - name: Docker demarre au boot
       ansible.builtin.shell: |
         systemctl daemon-reload
-        systemctl unmask docker.service
-        systemctl unmask docker.socket
-        systemctl restart docker.service
-        systemctl enable docker.service
+        systemctl enable --now docker.service
+        # Attente active que le socket docker.sock soit prêt
+        for i in {1..15}; do
+          if [ -S /var/run/docker.sock ]; then
+            exit 0
+          fi
+          sleep 1
+        done
+        exit 1
       register: docker_start
       changed_when: docker_start.rc == 0
 
