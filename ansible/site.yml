@@ -15,6 +15,8 @@
         name: "{{ sg_name }}"
         description: "{{ sg_description }}"
         region: "{{ aws_region }}"
+        aws_access_key: "{{ lookup('env', 'AWS_ACCESS_KEY_ID') }}"
+        aws_secret_key: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}"
         purge_rules: true   # supprime tout ce qui n'est pas liste (3000, 4000, 5432, 1433...)
         rules:
           - { proto: tcp, ports: [22],  cidr_ip: "{{ my_ip.content }}/32", rule_desc: "SSH Jenkins" }
@@ -34,10 +36,16 @@
         cache_valid_time: 3600
 
     - name: Docker demarre au boot
-      ansible.builtin.service: { name: docker, state: started, enabled: true }
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
 
     - name: ubuntu dans le groupe docker
-      ansible.builtin.user: { name: ubuntu, groups: docker, append: true }
+      ansible.builtin.user:
+        name: ubuntu
+        groups: docker
+        append: true
 
     - name: Recuperer le code
       become: false
@@ -101,7 +109,9 @@
       notify: Recharger nginx
 
     - name: Retirer le site par defaut
-      ansible.builtin.file: { path: /etc/nginx/sites-enabled/default, state: absent }
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
       notify: Recharger nginx
 
     - name: Appliquer nginx maintenant
@@ -126,4 +136,6 @@
 
   handlers:
     - name: Recharger nginx
-      ansible.builtin.service: { name: nginx, state: reloaded }
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
