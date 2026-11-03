@@ -17,7 +17,7 @@
         region: "{{ aws_region }}"
         aws_access_key: "{{ lookup('env', 'AWS_ACCESS_KEY_ID') }}"
         aws_secret_key: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}"
-        purge_rules: true   # supprime tout ce qui n'est pas liste (3000, 4000, 5432, 1433...)
+        purge_rules: true   # supprime tout ce qui n'est pas liste
         rules:
           - { proto: tcp, ports: [22],  cidr_ip: "{{ my_ip.content }}/32", rule_desc: "SSH Jenkins" }
           - { proto: tcp, ports: [80],  cidr_ip: 0.0.0.0/0, rule_desc: "HTTP" }
@@ -49,25 +49,22 @@
         update_cache: true
         cache_valid_time: 3600
 
-    - name: Docker demarre au boot
-      ansible.builtin.shell: |
-        systemctl daemon-reload
-        systemctl unmask docker.service
-        systemctl unmask docker.socket
-        systemctl restart docker.service
-        systemctl enable docker.service
-        
-        # Boucle d'attente active du socket docker
-        for i in $(seq 1 20); do
-          if [ -S /var/run/docker.sock ]; then
-            chmod 666 /var/run/docker.sock
-            exit 0
-          fi
-          sleep 1
-        done
-        exit 1
-      register: docker_start
-      changed_when: docker_start.rc == 0
+    - name: Activer et demarrer Docker
+      ansible.builtin.systemd:
+        name: docker
+        state: restarted
+        enabled: true
+        masked: no
+
+    - name: Attendre que le socket Docker soit disponible
+      ansible.builtin.wait_for:
+        path: /var/run/docker.sock
+        timeout: 20
+
+    - name: Ajuster les permissions du socket Docker
+      ansible.builtin.file:
+        path: /var/run/docker.sock
+        mode: '0666'
 
     - name: ubuntu dans le groupe docker
       ansible.builtin.user:
