@@ -38,7 +38,7 @@
 
   tasks:
     # --- Memoire : swap pour une instance de 1 Go de RAM ---
-    - name: Creer le swap 
+    - name: Creer le swap (RAM limitee)
       ansible.builtin.shell: |
         fallocate -l 2G /swapfile
         chmod 600 /swapfile
@@ -199,12 +199,19 @@
     - name: Appliquer nginx maintenant
       ansible.builtin.meta: flush_handlers
 
-    - name: Certificat Let's Encrypt
+    # Le template nginx ecrase la config modifiee par certbot (bloc 443).
+    # --reinstall remet le certificat existant dans nginx sans le re-emettre.
+    - name: Certificat Let's Encrypt (emission ou reinstallation dans nginx)
       ansible.builtin.command: >
         certbot --nginx -d {{ domain }} -d www.{{ domain }}
-        --non-interactive --agree-tos --redirect -m {{ letsencrypt_email }}
-      args:
-        creates: "/etc/letsencrypt/live/{{ domain }}/fullchain.pem"
+        --non-interactive --agree-tos --redirect --reinstall
+        -m {{ letsencrypt_email }}
+      changed_when: false
+
+    - name: Verifier que nginx ecoute sur le port 443
+      ansible.builtin.wait_for:
+        port: 443
+        timeout: 30
 
     - name: Verifier le site en HTTPS
       become: false
