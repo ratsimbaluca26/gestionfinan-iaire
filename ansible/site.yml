@@ -49,12 +49,29 @@
         update_cache: true
         cache_valid_time: 3600
 
-    - name: Activer et demarrer Docker
+        - name: Recharger systemd apres l'installation des paquets
       ansible.builtin.systemd:
-        name: docker
+        daemon_reload: true
+
+    - name: Reinitialiser l'etat d'echec de Docker
+      ansible.builtin.command: systemctl reset-failed docker.service docker.socket
+      changed_when: false
+      failed_when: false
+
+    - name: Redemarrer la socket Docker
+      ansible.builtin.systemd:
+        name: docker.socket
         state: restarted
         enabled: true
-        masked: no
+
+    - name: Demarrer containerd et Docker
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop:
+        - containerd
+        - docker
 
     - name: Attendre que le socket Docker soit disponible
       ansible.builtin.wait_for:
