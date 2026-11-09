@@ -26,7 +26,7 @@ export default function Login({ onLogin }) {
     <form className="card" onSubmit={handleSubmit}>
       <h2>Connexion</h2>
       <label>
-        Email
+        Email LEKA BRADA
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
       </label>
 

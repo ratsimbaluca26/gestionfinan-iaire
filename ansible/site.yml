@@ -17,7 +17,7 @@
         region: "{{ aws_region }}"
         aws_access_key: "{{ lookup('env', 'AWS_ACCESS_KEY_ID') }}"
         aws_secret_key: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}"
-        purge_rules: true   # supprime tout ce qui n'est pas liste
+        purge_rules: true   
         rules:
           - { proto: tcp, ports: [22],  cidr_ip: "{{ my_ip.content }}/32", rule_desc: "SSH Jenkins" }
           - { proto: tcp, ports: [80],  cidr_ip: 0.0.0.0/0, rule_desc: "HTTP" }
