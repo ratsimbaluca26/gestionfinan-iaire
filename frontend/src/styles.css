@@ -1,12 +1,1 @@
-
-/* Search and contact management */
-.transaction-filters { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(180px, .8fr); gap: 12px; margin: 0 0 12px; }
-.transaction-filters label { margin-bottom: 4px; }
-.contacts-card { max-width: 860px; margin: 0 auto; }
-.contact-form { display: grid; gap: 4px; padding: 18px; margin: 0 0 18px; border: 1px solid var(--line); border-radius: 14px; background: #fbfcfa; }
-.contact-form-actions, .contact-actions { display: flex; align-items: center; gap: 8px; }
-.contact-list li { grid-template-columns: minmax(0, 1fr) auto; }
-.contact-detail { display: block; margin-top: 4px; color: var(--muted); font-size: .82rem; }
-.danger-btn { background: #fbefeb; color: #a3423c; }
-.danger-btn:hover { background: #f5ded9; color: #8d302b; }
-@media (max-width: 600px) { .transaction-filters { grid-template-columns: 1fr; gap: 4px; } .contact-list li { grid-template-columns: 1fr; } .contact-actions { justify-content: flex-end; } }
+@import './tailwind.generated.css';

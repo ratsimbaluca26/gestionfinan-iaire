@@ -1,42 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { login } from '../api';
-
 export default function Login({ onLogin }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [err, setErr] = useState('');
-  const navigate = useNavigate();
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErr('');
-
-    try {
-      const res = await login({ email, password });
-      const { token, user } = res.data;
-      onLogin(user, token);
-      navigate('/');
-    } catch (e) {
-      setErr(e?.response?.data?.error || 'Erreur de connexion');
-    }
-  };
-
-  return (
-    <form className="card" onSubmit={handleSubmit}>
-      <h2>Connexion</h2>
-      <label>
-        Email LEKA BRADA
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-      </label>
-
-      <label>
-        Mot de passe
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-      </label>
-
-      <div className="err">{err}</div>
-      <button className="btn" type="submit">Se connecter</button>
-    </form>
-  );
+  const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const navigate = useNavigate();
+  const submit = async (e) => { e.preventDefault(); setError(''); setBusy(true); try { const { data } = await login({ email, password }); onLogin(data.user, data.token); navigate('/'); } catch (err) { setError(err.response?.data?.error || 'Erreur de connexion'); } finally { setBusy(false); } };
+  return <form onSubmit={submit} className="mx-auto mt-8 max-w-md rounded-3xl border border-slate-100 bg-white p-7 shadow-soft sm:p-9"><p className="text-xs font-bold tracking-[.15em] text-forest-700">VOTRE ESPACE FINANCIER</p><h1 className="mt-2 font-display text-3xl font-extrabold">Connexion</h1><p className="mt-2 text-sm text-slate-500">Connectez-vous pour retrouver votre budget.</p><label className="mt-7 block text-sm font-semibold text-slate-600">Adresse e-mail<input className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 font-normal focus:border-forest-600 focus:ring-4 focus:ring-forest-100" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label><label className="mt-4 block text-sm font-semibold text-slate-600">Mot de passe<input className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 font-normal focus:border-forest-600 focus:ring-4 focus:ring-forest-100" type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>{error && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}<button disabled={busy} className="mt-6 w-full rounded-xl bg-forest-700 px-4 py-3 font-bold text-white hover:bg-forest-800 disabled:opacity-60">{busy ? 'Connexion…' : 'Se connecter'}</button><p className="mt-5 text-center text-sm text-slate-500">Pas encore de compte ? <Link className="font-semibold text-forest-700 hover:underline" to="/register">Créer un compte</Link></p></form>;
 }
