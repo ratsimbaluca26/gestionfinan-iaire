@@ -34,7 +34,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <header className="topbar">
-        <h1><Link to="/">Mon budget</Link></h1>
+        <h1><Link to="/">Finiova</Link></h1>
         <nav>
           {user ? (
             <>
