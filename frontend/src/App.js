@@ -1,10 +1,28 @@
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
-import Login from './components/Login'; import Register from './components/Register'; import Dashboard from './components/Dashboard'; import SuppliersPage from './pages/SuppliersPage'; import ClientsPage from './pages/ClientsPage';
-function ProtectedRoute({ children }) { return localStorage.getItem('token') ? children : <Navigate to="/login" replace />; }
+import Login from './components/Login';
+import Register from './components/Register';
+import Dashboard from './components/Dashboard';
+import SuppliersPage from './pages/SuppliersPage';
+import ClientsPage from './pages/ClientsPage';
+
+function ProtectedRoute({ children }) {
+  return localStorage.getItem('token') ? children : <Navigate to="/login" replace />;
+}
+
 export default function App() {
-  const [user, setUser] = useState(() => { try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } });
-  const login = (data, token) => { localStorage.setItem('token', token); localStorage.setItem('user', JSON.stringify(data)); setUser(data); };
-  const logout = () => { localStorage.removeItem('token'); localStorage.removeItem('user'); setUser(null); };
-  return <BrowserRouter><div className="min-h-screen"><header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 px-5 py-4 sm:flex-row sm:items-center"><Link className="font-display text-xl font-extrabold tracking-tight text-ink" to="/">◈ <span className="text-forest-700">Mon budget</span></Link><nav className="flex flex-wrap items-center gap-1 text-sm text-slate-600">{user ? <><Link className="rounded-lg px-3 py-2 hover:bg-slate-100" to="/">Tableau de bord</Link><Link className="rounded-lg px-3 py-2 hover:bg-slate-100" to="/clients">Clients</Link><Link className="rounded-lg px-3 py-2 hover:bg-slate-100" to="/suppliers">Fournisseurs</Link><span className="px-2 text-xs text-slate-500">Bonjour {user.name || user.email}</span><button className="rounded-lg bg-forest-700 px-3 py-2 text-xs font-bold text-white hover:bg-forest-800" onClick={logout}>Déconnexion</button></> : <><Link className="rounded-lg px-3 py-2 hover:bg-slate-100" to="/login">Connexion</Link><Link className="rounded-lg bg-forest-700 px-3 py-2 text-white" to="/register">Inscription</Link></>}</nav></div></header><main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8"><Routes><Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} /><Route path="/login" element={<Login onLogin={login} />} /><Route path="/register" element={<Register onLogin={login} />} /><Route path="/clients" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} /><Route path="/suppliers" element={<ProtectedRoute><SuppliersPage /></ProtectedRoute>} /></Routes></main></div></BrowserRouter>;
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('user')); } catch { return null; }
+  });
+  const login = (data, token) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(data));
+    setUser(data);
+  };
+  const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+  };
+  return <BrowserRouter><div className="min-h-screen"><header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 px-5 py-4 sm:flex-row sm:items-center"><Link className="font-display text-xl font-extrabold tracking-tight text-ink" to="/">◈ <span className="text-forest-700">Mon budget</span></Link><nav className="flex flex-wrap items-center gap-1 text-sm text-slate-600">{user ? <><Link className="rounded-lg px-3 py-2 hover:bg-slate-100" to="/">Tableau de bord</Link><Link className="rounded-lg px-3 py-2 hover:bg-slate-100" to="/clients">Clients</Link><Link className="rounded-lg px-3 py-2 hover:bg-slate-100" to="/suppliers">Fournisseurs</Link><button className="rounded-lg bg-forest-700 px-3 py-2 text-xs font-bold text-white hover:bg-forest-800" onClick={logout}>Déconnexion</button></> : <><Link className="rounded-lg px-3 py-2 hover:bg-slate-100" to="/login">Connexion</Link><Link className="rounded-lg bg-forest-700 px-3 py-2 text-white" to="/register">Inscription</Link></>}</nav></div></header><main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8"><Routes><Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} /><Route path="/login" element={<Login onLogin={login} />} /><Route path="/register" element={<Register onLogin={login} />} /><Route path="/clients" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} /><Route path="/suppliers" element={<ProtectedRoute><SuppliersPage /></ProtectedRoute>} /></Routes></main></div></BrowserRouter>;
 }
