@@ -3,6 +3,7 @@ const pool = require('../db');
 const requireAuth = require('../middleware/auth');
 
 const router = express.Router();
+router.use(requireAuth);
 
 function serverError(res, err, where) {
   console.error(`[${where}]`, err);
@@ -11,12 +12,11 @@ function serverError(res, err, where) {
   return res.status(500).json(body);
 }
 
-router.use(requireAuth);
-
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, created_at AS "createdAt" FROM suppliers ORDER BY name ASC'
+      'SELECT id, name, created_at AS "createdAt" FROM suppliers WHERE user_id = $1 ORDER BY name ASC',
+      [req.user.id]
     );
     return res.json(result.rows);
   } catch (err) {
@@ -28,17 +28,13 @@ router.post('/', async (req, res) => {
   try {
     const name = String(req.body?.name || '').trim();
     if (!name) return res.status(400).json({ error: 'name requis' });
-
     const result = await pool.query(
-      'INSERT INTO suppliers (name) VALUES ($1) RETURNING id',
-      [name]
+      'INSERT INTO suppliers (user_id, name) VALUES ($1, $2) RETURNING id',
+      [req.user.id, name]
     );
-
     return res.status(201).json({ id: result.rows[0].id, name });
   } catch (err) {
-    if (err?.code === '23505') {
-      return res.status(409).json({ error: 'Ce fournisseur existe déjà' });
-    }
+    if (err?.code === '23505') return res.status(409).json({ error: 'Ce fournisseur existe déjà' });
     return serverError(res, err, 'POST /suppliers');
   }
 });
