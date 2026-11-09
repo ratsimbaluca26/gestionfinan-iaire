@@ -15,11 +15,9 @@
         name: "{{ sg_name }}"
         description: "{{ sg_description }}"
         region: "{{ aws_region }}"
-        aws_access_key: "{{ lookup('env', 'AWS_ACCESS_KEY_ID') }}"
-        aws_secret_key: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}"
-        purge_rules: true   
+        purge_rules: true
         rules:
-          - { proto: tcp, ports: [22],  cidr_ip: "{{ my_ip.content }}/32", rule_desc: "SSH Jenkins" }
+          - { proto: tcp, ports: [22],  cidr_ip: "{{ my_ip.content | trim }}/32", rule_desc: "SSH Jenkins" }
           - { proto: tcp, ports: [80],  cidr_ip: 0.0.0.0/0, rule_desc: "HTTP" }
           - { proto: tcp, ports: [443], cidr_ip: 0.0.0.0/0, rule_desc: "HTTPS" }
 
@@ -27,20 +25,54 @@
 - name: Configuration du serveur
   hosts: ec2
   become: true
+  gather_facts: false
+
+  pre_tasks:
+    - name: Attendre que SSH soit disponible
+      ansible.builtin.wait_for_connection:
+        delay: 5
+        timeout: 180
+
+    - name: Collecter les facts
+      ansible.builtin.setup:
+
   tasks:
-    - name: Nettoyer les paquets docker conflictuels
+    # --- Memoire : swap pour une instance de 1 Go de RAM ---
+    - name: Creer le swap 
+      ansible.builtin.shell: |
+        fallocate -l 2G /swapfile
+        chmod 600 /swapfile
+        mkswap /swapfile
+        swapon /swapfile
+      args:
+        creates: /swapfile
+
+    - name: Rendre le swap persistant
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        line: "/swapfile none swap sw 0 0"
+        state: present
+
+    - name: Reduire la tendance a swapper
+      ansible.builtin.copy:
+        dest: /etc/sysctl.d/99-swappiness.conf
+        content: "vm.swappiness=10\n"
+        mode: "0644"
+
+    - name: Appliquer swappiness
+      ansible.builtin.command: sysctl -w vm.swappiness=10
+      changed_when: false
+
+    # --- Docker : paquets Ubuntu (docker.io), sans reinstallation a chaque run ---
+    - name: Retirer uniquement les paquets Docker concurrents
       ansible.builtin.apt:
         name:
-          - containerd
-          - containerd.io
-          - docker
-          - docker-engine
-          - docker.io
           - docker-ce
           - docker-ce-cli
+          - containerd.io
+          - docker-engine
           - docker-compose-plugin
         state: absent
-        purge: true
 
     - name: Paquets systeme
       ansible.builtin.apt:
@@ -48,29 +80,33 @@
         state: present
         update_cache: true
         cache_valid_time: 3600
+      register: pkgs
 
-        - name: Recharger systemd apres l'installation des paquets
+    - name: Recharger systemd si les paquets ont change
       ansible.builtin.systemd:
         daemon_reload: true
+      when: pkgs.changed
 
     - name: Reinitialiser l'etat d'echec de Docker
       ansible.builtin.command: systemctl reset-failed docker.service docker.socket
       changed_when: false
       failed_when: false
 
-    - name: Redemarrer la socket Docker
+    - name: Redemarrer la socket Docker si les paquets ont change
       ansible.builtin.systemd:
         name: docker.socket
         state: restarted
         enabled: true
+      when: pkgs.changed
 
-    - name: Demarrer containerd et Docker
+    - name: Demarrer containerd, la socket et Docker
       ansible.builtin.systemd:
         name: "{{ item }}"
         state: started
         enabled: true
       loop:
         - containerd
+        - docker.socket
         - docker
 
     - name: Attendre que le socket Docker soit disponible
@@ -78,17 +114,16 @@
         path: /var/run/docker.sock
         timeout: 20
 
-    - name: Ajuster les permissions du socket Docker
-      ansible.builtin.file:
-        path: /var/run/docker.sock
-        mode: '0666'
-
     - name: ubuntu dans le groupe docker
       ansible.builtin.user:
         name: ubuntu
         groups: docker
         append: true
 
+    - name: Recharger la session SSH pour prendre le groupe en compte
+      ansible.builtin.meta: reset_connection
+
+    # --- Application ---
     - name: Recuperer le code
       become: false
       ansible.builtin.git:
@@ -106,6 +141,7 @@
       no_log: true
 
     - name: Lancer les conteneurs
+      become: false
       ansible.builtin.command: docker compose up -d --build --remove-orphans
       args:
         chdir: "{{ app_dir }}"
@@ -113,6 +149,7 @@
       changed_when: "'Started' in compose.stderr or 'Recreated' in compose.stderr or 'Created' in compose.stderr"
 
     - name: Attendre PostgreSQL
+      become: false
       ansible.builtin.command: docker compose exec -T db pg_isready -U postgres
       args:
         chdir: "{{ app_dir }}"
@@ -123,6 +160,7 @@
       changed_when: false
 
     - name: Aligner le mot de passe de la base sur le .env
+      become: false
       ansible.builtin.command: docker compose exec -T db psql -U postgres -v ON_ERROR_STOP=1
       args:
         chdir: "{{ app_dir }}"
@@ -131,11 +169,13 @@
       no_log: true
 
     - name: Redemarrer le backend apres alignement
+      become: false
       ansible.builtin.command: docker compose restart backend
       args:
         chdir: "{{ app_dir }}"
       changed_when: false
 
+    # --- Nginx et HTTPS ---
     - name: Configurer nginx
       ansible.builtin.template:
         src: nginx.conf.j2
