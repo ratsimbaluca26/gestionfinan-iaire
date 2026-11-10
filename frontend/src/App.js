@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Navigate, Link, useLocation } from 'react-router-dom';
-import Login from './components/Login';
-import Register from './components/Register';
-import Dashboard from './components/Dashboard';
-import SuppliersPage from './pages/SuppliersPage';
-import ClientsPage from './pages/ClientsPage';
-import LandingPage from './pages/LandingPage';
-
+import Login from './components/Login'; import Register from './components/Register'; import Dashboard from './components/Dashboard'; import SuppliersPage from './pages/SuppliersPage'; import ClientsPage from './pages/ClientsPage'; import LandingPage from './pages/LandingPage'; import VerifyEmail from './pages/VerifyEmail';
 function ProtectedRoute({ children }) { return localStorage.getItem('token') ? children : <Navigate to="/login" replace />; }
 function Navigation({ user, onLogout }) {
   const location = useLocation();
@@ -17,5 +11,5 @@ export default function App() {
   const [user, setUser] = useState(() => { try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } });
   const login = (data, token) => { localStorage.setItem('token', token); localStorage.setItem('user', JSON.stringify(data)); setUser(data); };
   const logout = () => { localStorage.removeItem('token'); localStorage.removeItem('user'); setUser(null); };
-  return <BrowserRouter><Navigation user={user} onLogout={logout} /><main className="min-h-screen pt-[72px]"><Routes><Route path="/" element={<LandingPage user={user} />} /><Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} /><Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login onLogin={login} />} /><Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <Register onLogin={login} />} /><Route path="/clients" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} /><Route path="/suppliers" element={<ProtectedRoute><SuppliersPage /></ProtectedRoute>} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></main></BrowserRouter>;
+  return <BrowserRouter><Navigation user={user} onLogout={logout} /><main className="min-h-screen pt-[72px]"><Routes><Route path="/" element={<LandingPage user={user} />} /><Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} /><Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login onLogin={login} />} /><Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <Register />} /><Route path="/verify-email" element={<VerifyEmail />} /><Route path="/clients" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} /><Route path="/suppliers" element={<ProtectedRoute><SuppliersPage /></ProtectedRoute>} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></main></BrowserRouter>;
 }

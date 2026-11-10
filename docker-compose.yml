@@ -12,7 +12,6 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
       - "127.0.0.1:5433:5432"
-
   backend:
     build: ./backend
     container_name: mon_budget_dev_backend
@@ -29,12 +28,14 @@ services:
       DB_USER: postgres
       DB_PASSWORD: ${DEV_DB_PASSWORD:-local_dev_password}
       DB_NAME: mon_budget_dev
+      GMAIL_USER: ${GMAIL_USER:-}
+      GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
     volumes:
       - ./backend:/app
       - /app/node_modules
     ports:
       - "127.0.0.1:4001:4000"
-
   frontend:
     build: ./frontend
     container_name: mon_budget_dev_frontend
@@ -51,6 +52,5 @@ services:
       - /app/node_modules
     ports:
       - "127.0.0.1:3001:3000"
-
 volumes:
   postgres_dev_data:
