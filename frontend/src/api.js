@@ -1,1 +1,31 @@
-export const payTransaction = (id, amount, sendReceipt = false) => API.put(`/transactions/${id}/pay`, { amount, sendReceipt });
+import axios from 'axios';
+
+const API = axios.create({
+  baseURL: `${process.env.REACT_APP_API || 'http://localhost:4000'}`
+});
+
+API.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+export const register = (data) => API.post('/auth/register', data);
+export const verifyEmail = (token) => API.post('/auth/verify-email', { token });
+export const login = (data) => API.post('/auth/login', data);
+
+export const getTransactions = (ym) => API.get('/transactions', { params: ym ? { ym } : {} });
+export const createTransaction = (data) => API.post('/transactions', data);
+export const deleteTransaction = (id) => API.delete(`/transactions/${id}`);
+export const payTransaction = (id, amount, sendReceipt = false) =>
+  API.put(`/transactions/${id}/pay`, { amount, sendReceipt });
+
+export const getClients = () => API.get('/clients');
+export const createClient = (data) => API.post('/clients', data);
+export const updateClient = (id, data) => API.put(`/clients/${id}`, data);
+export const deleteClient = (id) => API.delete(`/clients/${id}`);
+
+export const getSuppliers = () => API.get('/suppliers');
+export const createSupplier = (data) => API.post('/suppliers', data);
+export const updateSupplier = (id, data) => API.put(`/suppliers/${id}`, data);
+export const deleteSupplier = (id) => API.delete(`/suppliers/${id}`);
