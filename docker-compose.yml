@@ -1,48 +1,56 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: mon_budget_db
-    restart: always
+    container_name: mon_budget_dev_db
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: mon_budget
+      POSTGRES_DB: mon_budget_dev
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_PASSWORD: ${DEV_DB_PASSWORD:-local_dev_password}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "127.0.0.1:5433:5432"
 
   backend:
     build: ./backend
-    container_name: mon_budget_backend
-    restart: always
+    container_name: mon_budget_dev_backend
+    restart: unless-stopped
     depends_on:
       - db
     environment:
       PORT: 4000
-      NODE_ENV: production
-      CLIENT_ORIGIN: https://${DOMAIN}
-      JWT_SECRET: ${JWT_SECRET}
+      NODE_ENV: development
+      CLIENT_ORIGIN: ${DEV_CLIENT_ORIGIN:-http://localhost:3001}
+      JWT_SECRET: ${DEV_JWT_SECRET:-local-development-secret-change-me}
       DB_HOST: db
       DB_PORT: 5432
       DB_USER: postgres
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: mon_budget
+      DB_PASSWORD: ${DEV_DB_PASSWORD:-local_dev_password}
+      DB_NAME: mon_budget_dev
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
     ports:
-      - "127.0.0.1:4000:4000"
+      - "127.0.0.1:4001:4000"
 
   frontend:
     build: ./frontend
-    container_name: mon_budget_frontend
-    restart: always
+    container_name: mon_budget_dev_frontend
+    restart: unless-stopped
     depends_on:
       - backend
     environment:
-      REACT_APP_API: https://${DOMAIN}/api
+      REACT_APP_API: ${DEV_API_URL:-http://localhost:4001/api}
       HOST: 0.0.0.0
-      WDS_SOCKET_PORT: 443
+      WDS_SOCKET_PORT: ${DEV_WDS_SOCKET_PORT:-3001}
       DANGEROUSLY_DISABLE_HOST_CHECK: "true"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:3001:3000"
 
 volumes:
-  postgres_data: {}
+  postgres_dev_data:
