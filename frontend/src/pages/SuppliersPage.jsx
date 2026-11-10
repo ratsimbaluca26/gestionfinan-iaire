@@ -1,77 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { getSuppliers, createSupplier } from '../api';
-
+import { createSupplier, deleteSupplier, getSuppliers, updateSupplier } from '../api';
 export default function SuppliersPage() {
-  const [suppliers, setSuppliers] = useState([]);
-  const [name, setName] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
-
-  const loadSuppliers = async () => {
-    try {
-      setError('');
-      const res = await getSuppliers();
-      setSuppliers(res.data || []);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Erreur de chargement des fournisseurs');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadSuppliers();
-  }, []);
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    const supplierName = name.trim();
-    if (!supplierName) return;
-
-    try {
-      setError('');
-      await createSupplier({ name: supplierName });
-      setName('');
-      await loadSuppliers();
-    } catch (err) {
-      setError(err.response?.data?.error || 'Erreur lors de la création du fournisseur');
-    }
-  };
-
-  return (
-    <section className="card">
-      <h3>Fournisseurs</h3>
-
-      <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Nom du fournisseur"
-          style={{ flex: 1, minWidth: 200 }}
-        />
-        <button type="submit" className="btn">Ajouter</button>
-      </form>
-
-      {error && <div className="err">{error}</div>}
-
-      {loading ? (
-        <p>Chargement...</p>
-      ) : (
-        <ul className="list">
-          {suppliers.length === 0 ? (
-            <li className="empty">Aucun fournisseur enregistré.</li>
-          ) : (
-            suppliers.map((supplier) => (
-              <li key={supplier.id}>
-                <div>
-                  <strong>{supplier.name}</strong>
-                </div>
-              </li>
-            ))
-          )}
-        </ul>
-      )}
-    </section>
-  );
+  const [suppliers, setSuppliers] = useState([]); const [name, setName] = useState(''); const [editingId, setEditingId] = useState(null); const [error, setError] = useState(''); const [loading, setLoading] = useState(true);
+  const load = async () => { try { setError(''); const res = await getSuppliers(); setSuppliers(res.data || []); } catch (err) { setError(err.response?.data?.error || 'Erreur de chargement des fournisseurs'); } finally { setLoading(false); } };
+  useEffect(() => { load(); }, []);
+  const submit = async (e) => { e.preventDefault(); try { if (editingId) await updateSupplier(editingId, { name }); else await createSupplier({ name }); setName(''); setEditingId(null); await load(); } catch (err) { setError(err.response?.data?.error || 'Erreur lors de l’enregistrement'); } };
+  const remove = async (item) => { if (!window.confirm(`Supprimer « ${item.name} » ?`)) return; try { await deleteSupplier(item.id); await load(); } catch (err) { setError(err.response?.data?.error || 'Suppression impossible'); } };
+  const field = 'w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-forest-600 focus:ring-4 focus:ring-forest-100';
+  return <section className="mx-auto max-w-3xl rounded-2xl border border-slate-100 bg-white p-5 shadow-soft sm:p-7"><div className="mb-6 flex items-center justify-between"><div><p className="text-[11px] font-bold tracking-[.15em] text-forest-700">VOTRE CARNET</p><h1 className="mt-1 font-display text-2xl font-bold">Mes fournisseurs</h1></div><span className="rounded-full bg-slate-100 px-3 py-1 text-sm">{suppliers.length}</span></div>
+    <form onSubmit={submit} className="mb-6 flex flex-col gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:flex-row sm:items-end"><label className="mb-0 flex-1 text-xs font-semibold text-slate-600">Nom du fournisseur<input className={`${field} mt-1.5 bg-white`} required value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex. Fournitures Martin" /></label><button className="rounded-xl bg-forest-700 px-4 py-3 text-sm font-bold text-white hover:bg-forest-800">{editingId ? 'Enregistrer' : 'Ajouter'}</button>{editingId && <button type="button" className="rounded-xl bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-700" onClick={() => { setEditingId(null); setName(''); }}>Annuler</button>}</form>
+    {error && <p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}{loading ? <p className="py-8 text-center text-sm text-slate-500">Chargement…</p> : suppliers.length === 0 ? <p className="py-10 text-center text-sm text-slate-500">Aucun fournisseur enregistré.</p> : <ul className="divide-y divide-slate-100">{suppliers.map((item) => <li key={item.id} className="flex flex-col justify-between gap-3 py-4 sm:flex-row sm:items-center"><strong>{item.name}</strong><div className="flex gap-2"><button className="rounded-lg bg-forest-50 px-3 py-2 text-xs font-semibold text-forest-800 hover:bg-forest-100" onClick={() => { setEditingId(item.id); setName(item.name); }}>Modifier</button><button className="rounded-lg bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100" onClick={() => remove(item)}>Supprimer</button></div></li>)}</ul>}</section>;
 }

@@ -6,22 +6,21 @@ const API = axios.create({
 
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
 export const register = (data) => API.post('/auth/register', data);
 export const login = (data) => API.post('/auth/login', data);
-
-export const getTransactions = (ym) => API.get('/transactions', { params: { ym } });
+export const getTransactions = (ym) => API.get('/transactions', { params: ym ? { ym } : {} });
 export const createTransaction = (data) => API.post('/transactions', data);
 export const deleteTransaction = (id) => API.delete(`/transactions/${id}`);
 export const payTransaction = (id, amount) => API.put(`/transactions/${id}/pay`, { amount });
-
 export const getClients = () => API.get('/clients');
 export const createClient = (data) => API.post('/clients', data);
-
+export const updateClient = (id, data) => API.put(`/clients/${id}`, data);
+export const deleteClient = (id) => API.delete(`/clients/${id}`);
 export const getSuppliers = () => API.get('/suppliers');
 export const createSupplier = (data) => API.post('/suppliers', data);
+export const updateSupplier = (id, data) => API.put(`/suppliers/${id}`, data);
+export const deleteSupplier = (id) => API.delete(`/suppliers/${id}`);
