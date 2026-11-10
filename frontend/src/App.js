@@ -7,65 +7,15 @@ import SuppliersPage from './pages/SuppliersPage';
 import ClientsPage from './pages/ClientsPage';
 import LandingPage from './pages/LandingPage';
 
-function ProtectedRoute({ children }) {
-  return localStorage.getItem('token') ? children : <Navigate to="/login" replace />;
-}
-
+function ProtectedRoute({ children }) { return localStorage.getItem('token') ? children : <Navigate to="/login" replace />; }
 function Navigation({ user, onLogout }) {
   const location = useLocation();
-  const navClass = ({ isActive }) => [
-    'relative rounded-lg px-3 py-2 text-sm font-semibold transition-colors',
-    isActive
-      ? 'bg-slate-100 text-slate-950 after:absolute after:inset-x-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-red-700'
-      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'
-  ].join(' ');
-
-  return <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
-    <div className="mx-auto flex min-h-[72px] max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
-      <Link className="shrink-0 font-sans text-xl font-bold tracking-tight text-slate-950" to={user ? '/dashboard' : '/'}>Finiova</Link>
-      <nav className="flex items-center gap-1" aria-label="Navigation principale">
-        {user ? <>
-          <NavLink to="/dashboard" className={navClass}>Tableau de bord</NavLink>
-          <NavLink to="/clients" className={navClass}>Clients</NavLink>
-          <NavLink to="/suppliers" className={navClass}>Fournisseurs</NavLink>
-          <button className="ml-1 rounded-lg bg-slate-950 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-800" onClick={onLogout}>Déconnexion</button>
-        </> : <>
-          <NavLink end to="/" className={navClass}>Accueil</NavLink>
-          {location.pathname === '/' && <a className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 sm:inline-flex" href="#fonctionnalites">Fonctionnalités</a>}
-          <NavLink to="/login" className={navClass}>Connexion</NavLink>
-          <NavLink to="/register" className={({ isActive }) => `rounded-lg px-3 py-2 text-sm font-semibold transition ${isActive ? 'bg-red-800 text-white ring-2 ring-red-200' : 'bg-red-700 text-white hover:bg-red-800'}`}>Créer un compte</NavLink>
-        </>}
-      </nav>
-    </div>
-  </header>;
+  const navClass = ({ isActive }) => `relative rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${isActive ? 'bg-slate-100 text-slate-950 after:absolute after:inset-x-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-slate-900' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'}`;
+  return <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur"><div className="mx-auto flex min-h-[72px] max-w-7xl items-center justify-between gap-3 px-4 sm:px-6"><Link className="shrink-0 font-sans text-xl font-bold tracking-tight text-slate-950" to={user ? '/dashboard' : '/'}>Finiova</Link><nav className="flex items-center gap-1" aria-label="Navigation principale">{user ? <><NavLink to="/dashboard" className={navClass}>Tableau de bord</NavLink><NavLink to="/clients" className={navClass}>Clients</NavLink><NavLink to="/suppliers" className={navClass}>Fournisseurs</NavLink><button className="ml-1 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-700" onClick={onLogout}>Déconnexion</button></> : <><NavLink end to="/" className={navClass}>Accueil</NavLink>{location.pathname === '/' && <a className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 sm:inline-flex" href="#fonctionnalites">Fonctionnalités</a>}<NavLink to="/login" className={navClass}>Connexion</NavLink><NavLink to="/register" className={navClass}>Créer un compte</NavLink></>}</nav></div></header>;
 }
-
 export default function App() {
-  const [user, setUser] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('user')); } catch { return null; }
-  });
-  const login = (data, token) => {
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(data));
-    setUser(data);
-  };
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-  };
-  return <BrowserRouter>
-    <Navigation user={user} onLogout={logout} />
-    <main className="min-h-screen pt-[72px]">
-      <Routes>
-        <Route path="/" element={<LandingPage user={user} />} />
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login onLogin={login} />} />
-        <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <Register onLogin={login} />} />
-        <Route path="/clients" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} />
-        <Route path="/suppliers" element={<ProtectedRoute><SuppliersPage /></ProtectedRoute>} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </main>
-  </BrowserRouter>;
+  const [user, setUser] = useState(() => { try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } });
+  const login = (data, token) => { localStorage.setItem('token', token); localStorage.setItem('user', JSON.stringify(data)); setUser(data); };
+  const logout = () => { localStorage.removeItem('token'); localStorage.removeItem('user'); setUser(null); };
+  return <BrowserRouter><Navigation user={user} onLogout={logout} /><main className="min-h-screen pt-[72px]"><Routes><Route path="/" element={<LandingPage user={user} />} /><Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} /><Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login onLogin={login} />} /><Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <Register onLogin={login} />} /><Route path="/clients" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} /><Route path="/suppliers" element={<ProtectedRoute><SuppliersPage /></ProtectedRoute>} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></main></BrowserRouter>;
 }
