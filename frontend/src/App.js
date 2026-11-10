@@ -14,69 +14,60 @@ export default function App() {
   const [user, setUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem('user')); } catch { return null; }
   });
+
   const login = (data, token) => {
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(data));
     setUser(data);
   };
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
   };
 
-
   return (
     <BrowserRouter>
-      <header className="topbar">
-        <h1><Link to="/">Finiova</Link></h1>
-        <nav>
-          {user ? (
-            <>
-              <Link to="/">Tableau de bord</Link>
-              <Link to="/suppliers">Fournisseurs</Link>
-              <span>Bonjour {user.name || user.email}</span>
-              <button className="btn small" onClick={handleLogout}>Déconnexion</button>
-            </>
-          ) : (
-            <>
-              <Link to="/login">Connexion</Link>
-              <Link to="/register">Inscription</Link>
-            </>
-          )}
-        </nav>
-      </header>
+      <div className="min-h-screen">
+        <header className="border-b border-slate-200 bg-white">
+          <div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 px-5 py-4 sm:flex-row sm:items-center">
+            <Link className="font-display text-xl font-extrabold tracking-tight text-ink" to="/">
+              ◈ <span className="text-forest-700">Mon budget</span>
+            </Link>
+            <nav className="flex flex-wrap items-center gap-1 text-sm text-slate-600">
+              {user ? (
+                <>
+                  <Link className="rounded-lg px-3 py-2 hover:bg-slate-100" to="/">Tableau de bord</Link>
+                  <Link className="rounded-lg px-3 py-2 hover:bg-slate-100" to="/clients">Clients</Link>
+                  <Link className="rounded-lg px-3 py-2 hover:bg-slate-100" to="/suppliers">Fournisseurs</Link>
+                  <button
+                    className="rounded-lg bg-forest-700 px-3 py-2 text-xs font-bold text-white hover:bg-forest-800"
+                    onClick={logout}
+                  >
+                    Déconnexion
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link className="rounded-lg px-3 py-2 hover:bg-slate-100" to="/login">Connexion</Link>
+                  <Link className="rounded-lg bg-forest-700 px-3 py-2 text-white" to="/register">Inscription</Link>
+                </>
+              )}
+            </nav>
+          </div>
+        </header>
 
-      <main>
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/login"
-            element={<Login onLogin={handleLogin} />}
-          />
-          <Route
-            path="/register"
-            element={<Register onLogin={handleLogin} />}
-          />
-          <Route
-            path="/suppliers"
-            element={
-              <ProtectedRoute>
-                <SuppliersPage />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </main>
+        <main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
+          <Routes>
+            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/login" element={<Login onLogin={login} />} />
+            <Route path="/register" element={<Register onLogin={login} />} />
+            <Route path="/clients" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} />
+            <Route path="/suppliers" element={<ProtectedRoute><SuppliersPage /></ProtectedRoute>} />
+          </Routes>
+        </main>
+      </div>
     </BrowserRouter>
   );
-
-  return <BrowserRouter><div className="min-h-screen"><header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 px-5 py-4 sm:flex-row sm:items-center"><Link className="font-display text-xl font-extrabold tracking-tight text-ink" to="/">◈ <span className="text-forest-700">Mon budget</span></Link><nav className="flex flex-wrap items-center gap-1 text-sm text-slate-600">{user ? <><Link className="rounded-lg px-3 py-2 hover:bg-slate-100" to="/">Tableau de bord</Link><Link className="rounded-lg px-3 py-2 hover:bg-slate-100" to="/clients">Clients</Link><Link className="rounded-lg px-3 py-2 hover:bg-slate-100" to="/suppliers">Fournisseurs</Link><button className="rounded-lg bg-forest-700 px-3 py-2 text-xs font-bold text-white hover:bg-forest-800" onClick={logout}>Déconnexion</button></> : <><Link className="rounded-lg px-3 py-2 hover:bg-slate-100" to="/login">Connexion</Link><Link className="rounded-lg bg-forest-700 px-3 py-2 text-white" to="/register">Inscription</Link></>}</nav></div></header><main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8"><Routes><Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} /><Route path="/login" element={<Login onLogin={login} />} /><Route path="/register" element={<Register onLogin={login} />} /><Route path="/clients" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} /><Route path="/suppliers" element={<ProtectedRoute><SuppliersPage /></ProtectedRoute>} /></Routes></main></div></BrowserRouter>;
 }
