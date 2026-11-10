@@ -1,19 +1,61 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { getTransactions, createTransaction, deleteTransaction, payTransaction, getClients, createClient, getSuppliers, createSupplier } from '../api';
 import TransactionForm from './TransactionForm';
+
 const money = (value) => new Intl.NumberFormat('fr-MG', { style: 'currency', currency: 'MGA', maximumFractionDigits: 0 }).format(Number(value || 0));
 export default function Dashboard() {
-  const [transactions, setTransactions] = useState([]); const [clients, setClients] = useState([]); const [suppliers, setSuppliers] = useState([]); const [error, setError] = useState(''); const [notice, setNotice] = useState(''); const [month, setMonth] = useState(new Date().toISOString().slice(0, 7)); const [search, setSearch] = useState(''); const [category, setCategory] = useState('');
-  const load = async () => { try { setError(''); const [txRes, clientRes, supplierRes] = await Promise.all([getTransactions(), getClients(), getSuppliers()]); setTransactions(txRes.data || []); setClients(clientRes.data || []); setSuppliers(supplierRes.data || []); } catch (err) { setError(err.response?.data?.error || 'Impossible de charger vos données. Vérifiez votre connexion.'); } };
+  const [transactions, setTransactions] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('');
+
+  const load = async () => {
+    try {
+      setError('');
+      const [txRes, clientRes, supplierRes] = await Promise.all([getTransactions(), getClients(), getSuppliers()]);
+      setTransactions(txRes.data || []); setClients(clientRes.data || []); setSuppliers(supplierRes.data || []);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Impossible de charger vos données. Vérifiez votre connexion.');
+    }
+  };
   useEffect(() => { load(); }, []);
+
   const monthTransactions = useMemo(() => transactions.filter((tx) => String(tx.date || '').slice(0, 7) === month), [transactions, month]);
   const categories = useMemo(() => [...new Set(monthTransactions.map((tx) => tx.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr')), [monthTransactions]);
-  const visibleTransactions = useMemo(() => { const term = search.trim().toLocaleLowerCase('fr'); return monthTransactions.filter((tx) => (!category || tx.category === category) && (!term || [tx.category, tx.description, tx.clientName, tx.supplierName, tx.sub, tx.amount].join(' ').toLocaleLowerCase('fr').includes(term))); }, [monthTransactions, search, category]);
-  const incoming = monthTransactions.filter((tx) => tx.type === 'in').reduce((sum, tx) => sum + Number(tx.amount || 0), 0); const outgoing = monthTransactions.filter((tx) => tx.type === 'out').reduce((sum, tx) => sum + Number(tx.amount || 0), 0); const balance = transactions.reduce((sum, tx) => sum + (tx.type === 'in' ? 1 : -1) * Number(tx.amount || 0), 0);
-  const create = async (data) => { await createTransaction(data); await load(); }; const addClient = async (data) => { const result = await createClient(data); await load(); return result.data; }; const addSupplier = async (data) => { const result = await createSupplier(data); await load(); return result.data; };
-  const remove = async (id) => { if (window.confirm('Supprimer cette opération ?')) { try { await deleteTransaction(id); await load(); } catch (err) { setError(err.response?.data?.error || 'Suppression impossible'); } } };
-  const pay = async (tx) => { const remaining = Math.max(0, Number(tx.total || 0) - Number(tx.paid || 0)); const amount = Number(window.prompt(`Montant du paiement (Ar) — reste ${money(remaining)}`, String(remaining))); if (!Number.isFinite(amount) || amount <= 0) return; const sendReceipt = tx.type === 'in' && Boolean(tx.clientEmail) && window.confirm(`Envoyer le reçu de paiement par Gmail à ${tx.clientEmail} ?\n\nLe message sera envoyé depuis votre adresse Gmail enregistrée.`); try { const { data } = await payTransaction(tx.id, amount, sendReceipt); await load(); setNotice(data.receiptEmail ? `Paiement enregistré. Reçu envoyé à ${data.receiptEmail}.` : data.emailError || data.message); } catch (err) { setError(err.response?.data?.error || 'Paiement impossible'); } };
-  return <div className="space-y-6 md:space-y-8"><section className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><p className="mb-1 text-xs font-bold tracking-[.16em] text-slate-500">VOTRE ESPACE FINANCIER</p><h1 className="font-sans text-3xl font-bold tracking-tight sm:text-4xl">Tableau de bord</h1><p className="mt-2 text-sm text-slate-500">Suivez vos finances en ariary.</p></div><label className="mb-0 grid gap-2 text-sm font-semibold text-slate-700">Période<input className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm focus:border-slate-400 focus:ring-4 focus:ring-slate-100" type="month" value={month} onChange={(e) => setMonth(e.target.value)} /></label></section>
+  const visibleTransactions = useMemo(() => {
+    const term = search.trim().toLocaleLowerCase('fr');
+    return monthTransactions.filter((tx) => (!category || tx.category === category) && (!term || [tx.category, tx.description, tx.clientName, tx.supplierName, tx.sub, tx.amount].join(' ').toLocaleLowerCase('fr').includes(term)));
+  }, [monthTransactions, search, category]);
+  const incoming = monthTransactions.filter((tx) => tx.type === 'in').reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+  const outgoing = monthTransactions.filter((tx) => tx.type === 'out').reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+  const balance = transactions.reduce((sum, tx) => sum + (tx.type === 'in' ? 1 : -1) * Number(tx.amount || 0), 0);
+
+  const create = async (data) => { await createTransaction(data); await load(); };
+  const addClient = async (data) => { const result = await createClient(data); await load(); return result.data; };
+  const addSupplier = async (data) => { const result = await createSupplier(data); await load(); return result.data; };
+  const remove = async (id) => {
+    if (!window.confirm('Supprimer cette opération ?')) return;
+    try { await deleteTransaction(id); await load(); }
+    catch (err) { setError(err.response?.data?.error || 'Suppression impossible'); }
+  };
+  const pay = async (tx) => {
+    const remaining = Math.max(0, Number(tx.total || 0) - Number(tx.paid || 0));
+    const amount = Number(window.prompt(`Montant du paiement (Ar) — reste ${money(remaining)}`, String(remaining)));
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    const sendReceipt = tx.type === 'in' && Boolean(tx.clientEmail) && window.confirm(`Envoyer le reçu depuis le Gmail principal configuré dans l’application à ${tx.clientEmail} ?`);
+    try {
+      const { data } = await payTransaction(tx.id, amount, sendReceipt);
+      await load();
+      setNotice(data.receiptEmail ? `Paiement enregistré. Reçu envoyé à ${data.receiptEmail}.` : data.emailError || data.message);
+    } catch (err) { setError(err.response?.data?.error || 'Paiement impossible'); }
+  };
+
+  return <div className="space-y-6 md:space-y-8">
+    <section className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><p className="mb-1 text-xs font-bold tracking-[.16em] text-slate-500">VOTRE ESPACE FINANCIER</p><h1 className="font-sans text-3xl font-bold tracking-tight sm:text-4xl">Tableau de bord</h1><p className="mt-2 text-sm text-slate-500">Suivez vos finances en ariary.</p></div><label className="mb-0 grid gap-2 text-sm font-semibold text-slate-700">Période<input className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm focus:border-slate-400 focus:ring-4 focus:ring-slate-100" type="month" value={month} onChange={(e) => setMonth(e.target.value)} /></label></section>
     {error && <div role="alert" className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800">{error}</div>}{notice && <div role="status" className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800">{notice}</div>}
     <section className="rounded-3xl bg-slate-950 p-6 text-white shadow-soft sm:p-8"><p className="text-sm text-slate-300">Solde personnel total</p><h2 className="mt-2 font-sans text-4xl font-bold tracking-tight sm:text-5xl">{money(balance)}</h2><p className="mt-2 text-sm text-slate-300">Calculé à partir de toutes vos entrées et sorties.</p><p className="mt-6 border-t border-white/15 pt-4 text-xs capitalize text-slate-300">{new Date(`${month}-01T12:00:00`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</p></section>
     <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">{[['Entrées du mois', money(incoming), 'border-slate-400'], ['Sorties du mois', money(outgoing), 'border-slate-700'], ['Mes clients', clients.length, 'border-slate-400'], ['Mes fournisseurs', suppliers.length, 'border-slate-700']].map(([label, value, border]) => <article key={label} className={`rounded-2xl border-l-4 ${border} border-y border-r border-slate-100 bg-white p-4 shadow-soft`}><p className="text-xs text-slate-500">{label}</p><strong className="mt-1 block font-sans text-lg font-bold">{value}</strong></article>)}</section>
