@@ -1,12 +1,12 @@
 services:
   test-db:
-    image: postgres:16-alpine
+    build:
+      context: .
+      dockerfile: ci/postgres.Dockerfile
     environment:
       POSTGRES_DB: mon_budget_test
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ci-only-password
-    volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/10-init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d mon_budget_test"]
       interval: 2s
@@ -14,21 +14,17 @@ services:
       retries: 20
 
   backend-unit:
-    image: node:20-alpine
-    working_dir: /workspace/backend
-    volumes:
-      - ./backend:/workspace/backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.ci
     environment:
       NODE_ENV: test
-    command: >-
-      sh -c "npm install --no-audit --no-fund --package-lock=false
-      && npm test"
+    command: ["npm", "test"]
 
   backend-integration:
-    image: node:20-alpine
-    working_dir: /workspace/backend
-    volumes:
-      - ./backend:/workspace/backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.ci
     environment:
       NODE_ENV: test
       DB_HOST: test-db
@@ -43,17 +39,11 @@ services:
     depends_on:
       test-db:
         condition: service_healthy
-    command: >-
-      sh -c "npm install --no-audit --no-fund --package-lock=false
-      && npm run test:integration"
+    command: ["npm", "run", "test:integration"]
 
   frontend-build:
-    image: node:20-alpine
-    working_dir: /workspace/frontend
-    volumes:
-      - ./frontend:/workspace/frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.ci
     environment:
       CI: "true"
-    command: >-
-      sh -c "npm install --no-audit --no-fund --package-lock=false
-      && npm run build"
