@@ -1,0 +1,14 @@
+- name: Smoke test de production
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Vérifier la santé de l’API publique
+      ansible.builtin.uri:
+        url: "https://{{ domain }}/api/health"
+        status_code: 200
+        return_content: true
+      register: health
+      retries: 12
+      delay: 10
+      until: health.status == 200 and health.json.ok | default(false)

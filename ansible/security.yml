@@ -1,0 +1,21 @@
+- name: Configurer le Security Group AWS
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Obtenir l’adresse IP publique du runner Jenkins
+      ansible.builtin.uri:
+        url: https://api.ipify.org
+        return_content: true
+      register: jenkins_ip
+
+    - name: Définir les règles entrantes du Security Group
+      amazon.aws.ec2_security_group:
+        name: "{{ sg_name }}"
+        description: "{{ sg_description }}"
+        region: "{{ aws_region }}"
+        purge_rules: true
+        rules:
+          - { proto: tcp, ports: [22], cidr_ip: "{{ jenkins_ip.content | trim }}/32", rule_desc: "SSH Jenkins" }
+          - { proto: tcp, ports: [80], cidr_ip: 0.0.0.0/0, rule_desc: "HTTP" }
+          - { proto: tcp, ports: [443], cidr_ip: 0.0.0.0/0, rule_desc: "HTTPS" }

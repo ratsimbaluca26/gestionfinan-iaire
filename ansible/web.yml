@@ -1,0 +1,39 @@
+- name: Configurer Nginx et HTTPS
+  hosts: ec2
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Installer la configuration Nginx
+      ansible.builtin.template:
+        src: templates/nginx.conf.j2
+        dest: /etc/nginx/sites-available/finiova
+        mode: "0644"
+      notify: Recharger nginx
+    - name: Activer le site
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/finiova
+        dest: /etc/nginx/sites-enabled/finiova
+        state: link
+      notify: Recharger nginx
+    - name: Retirer le site par défaut
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: Recharger nginx
+    - name: Appliquer Nginx
+      ansible.builtin.meta: flush_handlers
+    - name: Réinstaller ou émettre le certificat Let's Encrypt
+      ansible.builtin.command: >
+        certbot --nginx -d {{ domain }} -d www.{{ domain }}
+        --non-interactive --agree-tos --redirect --reinstall
+        -m {{ letsencrypt_email }}
+      changed_when: false
+    - name: Vérifier l’écoute HTTPS
+      ansible.builtin.wait_for:
+        port: 443
+        timeout: 30
+  handlers:
+    - name: Recharger nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded

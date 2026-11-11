@@ -2,8 +2,9 @@ pipeline {
     agent any
 
     options {
-        timeout(time: 25, unit: 'MINUTES')
+        timeout(time: 45, unit: 'MINUTES')
         disableConcurrentBuilds()
+        timestamps()
     }
 
     environment {
@@ -17,46 +18,123 @@ pipeline {
     }
 
     stages {
-        stage('Check conflicts') {
+        stage('Tests unitaires backend') {
             steps {
-                sh '! grep -rn "^<<<<<<<\\|^>>>>>>>" --include=*.js --include=*.yml --exclude-dir=node_modules .'
+                sh 'docker compose -f docker-compose.ci.yml run --build --rm backend-unit'
             }
         }
 
-        stage('Ansible') {
+        stage('Tests d’intégration backend + PostgreSQL') {
+            steps {
+                sh 'docker compose -f docker-compose.ci.yml run --build --rm backend-integration'
+            }
+            post {
+                always {
+                    sh 'docker compose -f docker-compose.ci.yml down --volumes --remove-orphans || true'
+                }
+            }
+        }
+
+        stage('Build frontend') {
+            steps {
+                sh 'docker compose -f docker-compose.ci.yml run --build --rm frontend-build'
+            }
+        }
+
+        stage('Validation Ansible') {
+            steps {
+                sh '''
+                    set -eu
+                    ansible-galaxy collection install -r ansible/requirements.yml
+                    ansible-playbook -i localhost, ansible/site.yml --syntax-check
+                '''
+            }
+        }
+
+        stage('Préparer inventaire EC2') {
+            steps {
+                sh '''
+                    set -eu
+                    umask 077
+                    printf '%s\\n' \\
+                      'localhost ansible_connection=local ansible_python_interpreter=/usr/bin/python3' \\
+                      '' \\
+                      '[ec2]' \\
+                      "$EC2_HOST" > ansible/inventory.ini
+                '''
+            }
+        }
+
+        stage('Provisionner le Security Group AWS') {
             steps {
                 withCredentials([
-    sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY'),
-    string(credentialsId: 'db-password', variable: 'DB_PASSWORD'),
-    string(credentialsId: 'jwt-secret', variable: 'JWT_SECRET'),
-    string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
-    string(credentialsId: 'aws-access-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
-    usernamePassword(
-        credentialsId: '7706b8c4-2d26-416c-baaa-70c17d6bcd22',
-        usernameVariable: 'GMAIL_USER',
-        passwordVariable: 'GMAIL_APP_PASSWORD'
-    )
-]) {
-    sh '''
-        echo "localhost ansible_connection=local ansible_python_interpreter=/usr/bin/python3" > ansible/inventory.ini
-        echo "" >> ansible/inventory.ini
-        echo "[ec2]" >> ansible/inventory.ini
-        echo "${EC2_HOST}" >> ansible/inventory.ini
+                    string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-access-secret', variable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
+                    sh 'aws sts get-caller-identity && ansible-playbook -i localhost, ansible/security.yml'
+                }
+            }
+        }
 
-        ansible-galaxy collection install -r ansible/requirements.yml
-        aws sts get-caller-identity
+        stage('Configurer le serveur EC2') {
+            steps {
+                withCredentials([
+                    sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY')
+                ]) {
+                    sh '''
+                        ansible-playbook -i ansible/inventory.ini ansible/server.yml \\
+                          --private-key "$SSH_KEY" -u ubuntu
+                    '''
+                }
+            }
+        }
 
-        ansible-playbook -i ansible/inventory.ini ansible/site.yml \
-          --private-key "$SSH_KEY" -u ubuntu \
-          --extra-vars "db_password=${DB_PASSWORD} jwt_secret=${JWT_SECRET} letsencrypt_email=${LE_EMAIL}"
-    '''
-}
+        stage('Déployer application et configuration') {
+            steps {
+                withCredentials([
+                    sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY'),
+                    string(credentialsId: 'db-password', variable: 'DB_PASSWORD'),
+                    string(credentialsId: 'jwt-secret', variable: 'JWT_SECRET'),
+                    usernamePassword(
+                        credentialsId: '7706b8c4-2d26-416c-baaa-70c17d6bcd22',
+                        usernameVariable: 'GMAIL_USER',
+                        passwordVariable: 'GMAIL_APP_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        ansible-playbook -i ansible/inventory.ini ansible/application.yml \\
+                          --private-key "$SSH_KEY" -u ubuntu
+                    '''
+                }
+            }
+        }
+
+        stage('Configurer Nginx et HTTPS') {
+            steps {
+                withCredentials([
+                    sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY')
+                ]) {
+                    sh '''
+                        ansible-playbook -i ansible/inventory.ini ansible/web.yml \\
+                          --private-key "$SSH_KEY" -u ubuntu
+                    '''
+                }
+            }
+        }
+
+        stage('Smoke test production') {
+            steps {
+                sh 'ansible-playbook -i localhost, ansible/health.yml'
             }
         }
     }
 
     post {
-        success { echo 'Deploiement reussi : https://finiova.app' }
-        failure { echo 'Echec du deploiement : voir Console Output.' }
+        success { echo 'Tests, validations et déploiement réussis : https://finiova.app' }
+        failure { echo 'Pipeline interrompu : le déploiement ne démarre pas si les tests ou validations échouent.' }
+        always {
+            sh 'docker compose -f docker-compose.ci.yml down --volumes --remove-orphans || true'
+            sh 'rm -f ansible/inventory.ini'
+        }
     }
 }

@@ -1,19 +1,6 @@
-const express = require('express');
-const cors = require('cors');
+require('dotenv').config();
+const app = require('./app');
 const pool = require('./db');
-
-if (!process.env.JWT_SECRET) {
-  console.error('JWT_SECRET manquant : configurez la variable d’environnement.');
-  process.exit(1);
-}
-const app = express();
-app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:3001' }));
-app.use(express.json());
-app.get('/api/health', (_req, res) => res.json({ ok: true }));
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/clients', require('./routes/clients'));
-app.use('/api/transactions', require('./routes/transactions'));
-app.use('/api/suppliers', require('./routes/suppliers'));
 
 async function ensureEmailVerificationSchema() {
   await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT TRUE');
@@ -27,7 +14,20 @@ async function ensureEmailVerificationSchema() {
   await pool.query('CREATE INDEX IF NOT EXISTS idx_email_verification_tokens_user_id ON email_verification_tokens(user_id)');
 }
 
-const port = process.env.PORT || 4000;
-ensureEmailVerificationSchema()
-  .then(() => app.listen(port, () => console.log(`API sur http://localhost:${port}`)))
-  .catch((err) => { console.error('Initialisation du schéma e-mail impossible:', err); process.exit(1); });
+async function start() {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET manquant : configurez la variable d’environnement.');
+  }
+  await ensureEmailVerificationSchema();
+  const port = Number(process.env.PORT || 4000);
+  return app.listen(port, () => console.log(`API sur http://localhost:${port}`));
+}
+
+if (require.main === module) {
+  start().catch((err) => {
+    console.error('Démarrage du backend impossible :', err.message);
+    process.exit(1);
+  });
+}
+
+module.exports = { start, ensureEmailVerificationSchema };

@@ -1,0 +1,56 @@
+- name: Déployer l’application et sa configuration
+  hosts: ec2
+  gather_facts: false
+  vars:
+    app_dir: /home/ubuntu/gestionfinan-iaire
+    repo: https://github.com/ratsimbaluca26/gestionfinan-iaire.git
+    branch: dev
+  tasks:
+    - name: Récupérer le code de la branche de déploiement
+      become: false
+      ansible.builtin.git:
+        repo: "{{ repo }}"
+        dest: "{{ app_dir }}"
+        version: "{{ branch }}"
+        force: true
+    - name: Générer .env depuis les credentials Jenkins
+      become: false
+      ansible.builtin.template:
+        src: templates/env.j2
+        dest: "{{ app_dir }}/.env"
+        mode: "0600"
+      no_log: true
+    - name: Valider Docker Compose avant le démarrage
+      become: false
+      ansible.builtin.command: docker compose config -q
+      args:
+        chdir: "{{ app_dir }}"
+    - name: Construire et démarrer les services sans supprimer les volumes
+      become: false
+      ansible.builtin.command: docker compose up -d --build --remove-orphans
+      args:
+        chdir: "{{ app_dir }}"
+    - name: Attendre PostgreSQL
+      become: false
+      ansible.builtin.command: docker compose exec -T db pg_isready -U postgres
+      args:
+        chdir: "{{ app_dir }}"
+      register: postgres_ready
+      retries: 15
+      delay: 4
+      until: postgres_ready.rc == 0
+      changed_when: false
+    - name: Synchroniser le mot de passe PostgreSQL
+      become: false
+      ansible.builtin.command: docker compose exec -T db psql -U postgres -v ON_ERROR_STOP=1
+      args:
+        chdir: "{{ app_dir }}"
+        stdin: "ALTER USER postgres PASSWORD '{{ db_password }}';"
+      changed_when: false
+      no_log: true
+    - name: Redémarrer le backend après mise à jour des credentials
+      become: false
+      ansible.builtin.command: docker compose restart backend
+      args:
+        chdir: "{{ app_dir }}"
+      changed_when: false

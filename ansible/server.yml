@@ -1,0 +1,75 @@
+- name: Préparer le serveur EC2
+  hosts: ec2
+  become: true
+  gather_facts: false
+  pre_tasks:
+    - name: Attendre que SSH soit disponible
+      ansible.builtin.wait_for_connection:
+        delay: 5
+        timeout: 180
+    - name: Collecter les facts système
+      ansible.builtin.setup:
+  tasks:
+    - name: Créer le swap pour une instance à mémoire limitée
+      ansible.builtin.shell: |
+        fallocate -l 2G /swapfile
+        chmod 600 /swapfile
+        mkswap /swapfile
+        swapon /swapfile
+      args:
+        creates: /swapfile
+    - name: Rendre le swap persistant
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        line: "/swapfile none swap sw 0 0"
+        state: present
+    - name: Configurer swappiness
+      ansible.builtin.copy:
+        dest: /etc/sysctl.d/99-swappiness.conf
+        content: "vm.swappiness=10\\n"
+        mode: "0644"
+    - name: Appliquer swappiness
+      ansible.builtin.command: sysctl -w vm.swappiness=10
+      changed_when: false
+    - name: Retirer les paquets Docker concurrents
+      ansible.builtin.apt:
+        name: [docker-ce, docker-ce-cli, containerd.io, docker-engine, docker-compose-plugin]
+        state: absent
+    - name: Installer Docker et les dépendances système
+      ansible.builtin.apt:
+        name: [git, curl, docker.io, docker-compose-v2, nginx, certbot, python3-certbot-nginx]
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+      register: packages
+    - name: Recharger systemd après changement des paquets
+      ansible.builtin.systemd:
+        daemon_reload: true
+      when: packages.changed
+    - name: Réinitialiser l’état d’échec de Docker
+      ansible.builtin.command: systemctl reset-failed docker.service docker.socket
+      changed_when: false
+      failed_when: false
+    - name: Redémarrer la socket Docker après changement des paquets
+      ansible.builtin.systemd:
+        name: docker.socket
+        state: restarted
+        enabled: true
+      when: packages.changed
+    - name: Démarrer et activer les services Docker
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop: [containerd, docker.socket, docker]
+    - name: Attendre le socket Docker
+      ansible.builtin.wait_for:
+        path: /var/run/docker.sock
+        timeout: 20
+    - name: Ajouter ubuntu au groupe docker
+      ansible.builtin.user:
+        name: ubuntu
+        groups: docker
+        append: true
+    - name: Recharger la connexion SSH pour le groupe docker
+      ansible.builtin.meta: reset_connection
