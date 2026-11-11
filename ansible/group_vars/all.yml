@@ -2,7 +2,7 @@
 domain: finiova.app
 app_dir: /home/ubuntu/gestionfinan-iaire
 repo: https://github.com/ratsimbaluca26/gestionfinan-iaire.git
-branch: develop
+branch: dev
 
 aws_region: us-east-2
 # A REMPLACER : nom exact du Security Group (EC2 > Security Groups > colonne Nom)
