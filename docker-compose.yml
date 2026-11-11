@@ -1,56 +1,48 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: mon_budget_dev_db
-    restart: unless-stopped
+    container_name: mon_budget_db
+    restart: always
     environment:
-      POSTGRES_DB: mon_budget_dev
+      POSTGRES_DB: mon_budget
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DEV_DB_PASSWORD:-local_dev_password}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    ports:
-      - "127.0.0.1:5433:5432"
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
   backend:
     build: ./backend
-    container_name: mon_budget_dev_backend
-    restart: unless-stopped
+    container_name: mon_budget_backend
+    restart: always
     depends_on:
       - db
     environment:
       PORT: 4000
-      NODE_ENV: development
-      CLIENT_ORIGIN: ${DEV_CLIENT_ORIGIN:-http://localhost:3001}
-      JWT_SECRET: ${DEV_JWT_SECRET:-local-development-secret-change-me}
+      NODE_ENV: production
+      CLIENT_ORIGIN: https://${DOMAIN}
+      JWT_SECRET: ${JWT_SECRET}
       DB_HOST: db
       DB_PORT: 5432
       DB_USER: postgres
-      DB_PASSWORD: ${DEV_DB_PASSWORD:-local_dev_password}
-      DB_NAME: mon_budget_dev
-      GMAIL_USER: ${GMAIL_USER:-}
-      GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD:-}
-      EMAIL_FROM: ${EMAIL_FROM:-}
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: mon_budget
     ports:
-      - "127.0.0.1:4001:4000"
+      - "127.0.0.1:4000:4000"
+
   frontend:
     build: ./frontend
-    container_name: mon_budget_dev_frontend
-    restart: unless-stopped
+    container_name: mon_budget_frontend
+    restart: always
     depends_on:
       - backend
     environment:
-      REACT_APP_API: ${DEV_API_URL:-http://localhost:4001/api}
+      REACT_APP_API: https://${DOMAIN}/api
       HOST: 0.0.0.0
-      WDS_SOCKET_PORT: ${DEV_WDS_SOCKET_PORT:-3001}
+      WDS_SOCKET_PORT: 443
       DANGEROUSLY_DISABLE_HOST_CHECK: "true"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     ports:
-      - "127.0.0.1:3001:3000"
+      - "127.0.0.1:3000:3000"
+
 volumes:
-  postgres_dev_data:
+  postgres_data: {}
