@@ -32,7 +32,7 @@ pipeline {
     string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
     string(credentialsId: 'aws-access-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
     usernamePassword(
-        credentialsId: 'gmail-smtp',
+        credentialsId: '7706b8c4-2d26-416c-baaa-70c17d6bcd22',
         usernameVariable: 'GMAIL_USER',
         passwordVariable: 'GMAIL_APP_PASSWORD'
     )
