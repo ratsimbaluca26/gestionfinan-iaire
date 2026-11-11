@@ -26,29 +26,31 @@ pipeline {
         stage('Ansible') {
             steps {
                 withCredentials([
-                    sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY'),
-                    string(credentialsId: 'db-password', variable: 'DB_PASSWORD'),
-                    string(credentialsId: 'jwt-secret', variable: 'JWT_SECRET'),
-                    string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
-                    string(credentialsId: 'aws-access-secret', variable: 'AWS_SECRET_ACCESS_KEY')
-                ]) {
-                    sh '''
-                        echo "localhost ansible_connection=local ansible_python_interpreter=/usr/bin/python3" > ansible/inventory.ini
-                        echo "" >> ansible/inventory.ini
-                        echo "[ec2]" >> ansible/inventory.ini
-                        echo "${EC2_HOST}" >> ansible/inventory.ini
+    sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY'),
+    string(credentialsId: 'db-password', variable: 'DB_PASSWORD'),
+    string(credentialsId: 'jwt-secret', variable: 'JWT_SECRET'),
+    string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
+    string(credentialsId: 'aws-access-secret', variable: 'AWS_SECRET_ACCESS_KEY'),
+    usernamePassword(
+        credentialsId: 'gmail-smtp',
+        usernameVariable: 'GMAIL_USER',
+        passwordVariable: 'GMAIL_APP_PASSWORD'
+    )
+]) {
+    sh '''
+        echo "localhost ansible_connection=local ansible_python_interpreter=/usr/bin/python3" > ansible/inventory.ini
+        echo "" >> ansible/inventory.ini
+        echo "[ec2]" >> ansible/inventory.ini
+        echo "${EC2_HOST}" >> ansible/inventory.ini
 
-                        ansible-galaxy collection install -r ansible/requirements.yml
-                        
-                        # Vérification de l'identité AWS active dans le pipeline
-                        aws sts get-caller-identity
+        ansible-galaxy collection install -r ansible/requirements.yml
+        aws sts get-caller-identity
 
-                        # Exécution du playbook Ansible depuis la racine du workspace
-                        ansible-playbook -i ansible/inventory.ini ansible/site.yml \
-                          --private-key "$SSH_KEY" -u ubuntu \
-                          --extra-vars "db_password=${DB_PASSWORD} jwt_secret=${JWT_SECRET} letsencrypt_email=${LE_EMAIL}"
-                    '''
-                }
+        ansible-playbook -i ansible/inventory.ini ansible/site.yml \
+          --private-key "$SSH_KEY" -u ubuntu \
+          --extra-vars "db_password=${DB_PASSWORD} jwt_secret=${JWT_SECRET} letsencrypt_email=${LE_EMAIL}"
+    '''
+}
             }
         }
     }
