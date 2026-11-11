@@ -27,6 +27,9 @@ services:
       DB_USER: postgres
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: mon_budget
+      GMAIL_USER: ${GMAIL_USER}
+      GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD}
+      EMAIL_FROM: "${EMAIL_FROM}"
     ports:
       - "127.0.0.1:4000:4000"
 
