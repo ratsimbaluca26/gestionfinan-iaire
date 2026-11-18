@@ -1,0 +1,34 @@
+---
+- name: Deploiement de Prometheus et Grafana
+  hosts: ec2
+  become: yes
+
+  tasks:
+    - name: Creer le repertoire de monitoring sur l'instance EC2
+      file:
+        path: /opt/monitoring
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Copier le fichier docker-compose.yml pour le monitoring
+      copy:
+        src: files/monitoring/docker-compose.yml
+        dest: /opt/monitoring/docker-compose.yml
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+
+    - name: Copier le fichier de configuration prometheus.yml
+      copy:
+        src: files/monitoring/prometheus.yml
+        dest: /opt/monitoring/prometheus.yml
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+
+    - name: Demarrer les conteneurs de monitoring avec Docker Compose
+      command: docker compose up -d
+      args:
+        chdir: /opt/monitoring

@@ -121,6 +121,18 @@ pipeline {
                 }
             }
         }
+        stage('Déployer le monitoring') {
+            steps {
+                withCredentials([
+                    sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY')
+                ]) {
+                    sh '''
+                        ansible-playbook -i ansible/inventory.ini ansible/monitoring.yml \
+                          --private-key "$SSH_KEY" -u ubuntu
+                    '''
+                }
+            }
+        }
 
         stage('Smoke test production') {
             steps {
@@ -128,6 +140,8 @@ pipeline {
             }
         }
     }
+
+
 
     post {
         success { echo 'Tests, validations et déploiement réussis : https://finiova.app' }
