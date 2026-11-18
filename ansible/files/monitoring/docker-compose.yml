@@ -26,6 +26,18 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
 
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    command:
+      - '--path.rootfs=/host'
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+
 volumes:
   prometheus_data:
   grafana_data:
