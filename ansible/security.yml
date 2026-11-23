@@ -16,6 +16,8 @@
         region: "{{ aws_region }}"
         purge_rules: true
         rules:
-          - { proto: tcp, ports: [22], cidr_ip: "{{ jenkins_ip.content | trim }}/32", rule_desc: "SSH Jenkins" }
-          - { proto: tcp, ports: [80], cidr_ip: 0.0.0.0/0, rule_desc: "HTTP" }
-          - { proto: tcp, ports: [443], cidr_ip: 0.0.0.0/0, rule_desc: "HTTPS" }
+          - { proto: tcp, ports: [22],   cidr_ip: "{{ jenkins_ip.content | trim }}/32", rule_desc: "SSH Jenkins" }
+          - { proto: tcp, ports: [80],   cidr_ip: 0.0.0.0/0, rule_desc: "HTTP" }
+          - { proto: tcp, ports: [443],  cidr_ip: 0.0.0.0/0, rule_desc: "HTTPS" }
+          - { proto: tcp, ports: [9090], cidr_ip: "{{ jenkins_ip.content | trim }}/32", rule_desc: "Prometheus" }
+          - { proto: tcp, ports: [3001], cidr_ip: "{{ jenkins_ip.content | trim }}/32", rule_desc: "Grafana" }
